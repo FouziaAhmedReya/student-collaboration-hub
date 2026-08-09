@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Notes') · Student Collaboration Hub</title>
+    <title>@yield('title', 'Student Collaboration Hub') · Student Collaboration Hub</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-950 antialiased">
     <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <a href="{{ route('notes.index') }}" class="flex items-center gap-3" aria-label="Student Collaboration Hub notes">
+            <a href="{{ route('notes.index') }}" class="flex items-center gap-3" aria-label="Student Collaboration Hub">
                 <span class="grid size-10 place-items-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
                     <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                         <path d="m2.5 9 9.5-5 9.5 5-9.5 5-9.5-5Z" stroke-linejoin="round"/>
@@ -23,9 +23,15 @@
                 </span>
             </a>
 
-            <nav aria-label="Main navigation" class="flex h-full items-center">
-                <a href="{{ route('notes.index') }}" class="flex h-full items-center border-b-2 border-blue-600 px-4 text-sm font-semibold text-blue-700">
+            <nav aria-label="Main navigation" class="flex h-full items-center gap-1 sm:gap-2">
+                <a href="{{ route('notes.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('notes.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
                     Notes
+                </a>
+                <a href="{{ route('project-ideas.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('project-ideas.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
+                    Project Ideas
+                </a>
+                <a href="{{ route('team-recommendations.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('team-recommendations.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
+                    Team Matcher
                 </a>
             </nav>
         </div>
@@ -41,9 +47,13 @@
             </div>
         @endif
 
-        @if ($errors->has('delete') || $errors->has('download'))
+        @if ($errors->any())
             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-                {{ $errors->first('delete') ?: $errors->first('download') }}
+                <ul class="list-inside list-disc">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 

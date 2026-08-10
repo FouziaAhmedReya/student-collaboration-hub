@@ -4,7 +4,23 @@ use App\Http\Controllers\Modules\Fouzia\NoteController;
 use App\Http\Controllers\Modules\Tuli\ProjectIdeaGeneratorController;
 use App\Http\Controllers\Modules\Tuli\TeamRecommendationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Modules\Sayeefa\TaskController;
+ 
 
+// Sayeefa Module - Task Management API
+Route::prefix('api')->group(function () {
+    Route::post('/tasks', [TaskController::class, 'createTask']);
+    Route::get('/projects/{projectId}/tasks', [TaskController::class, 'getProjectTasks']);
+    Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+    Route::delete('/tasks/{id}', [TaskController::class, 'deleteTask']);
+});
+ 
+
+ 
+Route::get('/tasks-ui', function () {
+    return view('tasks');
+});
+ 
 Route::redirect('/', '/notes');
 
 // Fouzia Module - Notes

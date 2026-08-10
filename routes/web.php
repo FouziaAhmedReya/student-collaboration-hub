@@ -9,6 +9,7 @@ use App\Http\Controllers\Modules\Sayeefa\TaskController;
 
 // Sayeefa Module - Task Management API
 Route::prefix('api')->group(function () {
+    Route::post('/projects', [TaskController::class, 'createProject']);
     Route::post('/tasks', [TaskController::class, 'createTask']);
     Route::get('/projects/{projectId}/tasks', [TaskController::class, 'getProjectTasks']);
     Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);

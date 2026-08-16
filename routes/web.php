@@ -6,6 +6,7 @@ use App\Http\Controllers\Modules\Tuli\TeamRecommendationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Modules\Sayeefa\ProjectTaskController;
 use App\Http\Controllers\Modules\Sayeefa\GroupChatController;
+use App\Http\Controllers\Modules\Fouzia\BookMarketplaceController;
 Route::redirect('/', '/notes');
 
 // Fouzia Module - Notes
@@ -19,6 +20,77 @@ Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group
     Route::get('/{note}/preview', 'preview')->name('preview');
     Route::get('/{note}/download', 'download')->name('download');
 });
+
+// Fouzia Module - Used Book Marketplace
+Route::controller(BookMarketplaceController::class)
+    ->prefix('marketplace')
+    ->name('marketplace.')
+    ->group(function () {
+        Route::get(
+            '/',
+            'index'
+        )->name('index');
+
+        Route::get(
+            '/sell',
+            'create'
+        )->name('create');
+
+        Route::post(
+            '/',
+            'store'
+        )->name('store');
+
+        Route::get(
+            '/activity',
+            'manage'
+        )->name('manage');
+
+        Route::post(
+            '/books/{book}/purchase',
+            'purchase'
+        )->name('orders.store');
+
+        Route::patch(
+            '/orders/{order}/accept',
+            'acceptOrder'
+        )->name('orders.accept');
+
+        Route::patch(
+            '/orders/{order}/reject',
+            'rejectOrder'
+        )->name('orders.reject');
+
+        Route::patch(
+            '/orders/{order}/cancel',
+            'cancelOrder'
+        )->name('orders.cancel');
+
+        Route::patch(
+            '/books/{book}/relist',
+            'relist'
+        )->name('relist');
+
+        Route::get(
+            '/{book}',
+            'show'
+        )->name('show');
+
+        Route::get(
+            '/{book}/edit',
+            'edit'
+        )->name('edit');
+
+        Route::put(
+            '/{book}',
+            'update'
+        )->name('update');
+
+        Route::delete(
+            '/{book}',
+            'destroy'
+        )->name('destroy');
+    });
 
 // Tuli Module - Web Routes
 Route::prefix('project-ideas')->name('project-ideas.')->group(function () {

@@ -24,6 +24,8 @@ Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group
 Route::prefix('project-ideas')->name('project-ideas.')->group(function () {
     Route::get('/', [ProjectIdeaGeneratorController::class, 'index'])->name('index');
     Route::post('/generate', [ProjectIdeaGeneratorController::class, 'generate'])->name('generate');
+    Route::put('/{idea}', [ProjectIdeaGeneratorController::class, 'update'])->name('update');
+    Route::delete('/{idea}', [ProjectIdeaGeneratorController::class, 'destroy'])->name('destroy');
 });
 
 Route::prefix('team-recommendations')->name('team-recommendations.')->group(function () {
@@ -35,6 +37,8 @@ Route::prefix('team-recommendations')->name('team-recommendations.')->group(func
 Route::prefix('api')->group(function () {
     Route::get('/ideas', [ProjectIdeaGeneratorController::class, 'index']);
     Route::post('/ideas/generate', [ProjectIdeaGeneratorController::class, 'generate']);
+    Route::put('/ideas/{idea}', [ProjectIdeaGeneratorController::class, 'update']);
+    Route::delete('/ideas/{idea}', [ProjectIdeaGeneratorController::class, 'destroy']);
     Route::get('/teammates', [TeamRecommendationController::class, 'index']);
     Route::post('/teams/match', [TeamRecommendationController::class, 'match']);
 });

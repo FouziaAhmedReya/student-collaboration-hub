@@ -422,28 +422,59 @@
     </div>
 </div>
 
-<!-- Add Interest Modal -->
-<div class="modal fade" id="addInterestModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('interests.store') }}" class="modal-content">
-            @csrf
+<!-- Add Interest Modal — Department-Filtered Catalog -->
+<div class="modal fade" id="addInterestModal" tabindex="-1" aria-labelledby="addInterestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Add Interest Tag</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title fw-bold" id="addInterestModalLabel">Add Interest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <!-- Department context note -->
+                <p class="text-secondary small mb-3">
+                    Showing suggestions for <strong id="interestDeptLabel">your department</strong>.
+                    Click any tag to add it to your profile.
+                </p>
+
+                <!-- Search box -->
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Interest Name</label>
-                    <input type="text" name="name" class="form-control" placeholder="e.g. AI, Web Development" required>
+                    <input
+                        type="text"
+                        id="interestSearchInput"
+                        class="form-control"
+                        placeholder="Search interests…"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <!-- Suggestion tags grid -->
+                <div id="interestSuggestionsContainer" style="max-height: 320px; overflow-y: auto;">
+                    <div id="interestTagsGrid" class="d-flex flex-wrap gap-2">
+                        <!-- Tags injected by JS -->
+                    </div>
+                    <p id="interestNoResults" class="text-muted small mt-2 d-none">No matching interests found.</p>
+                    <div id="interestLoadingSpinner" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                            <span class="visually-hidden">Loading…</span>
+                        </div>
+                        <span class="text-secondary small ms-2">Loading suggestions…</span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-hub-primary">Save Interest</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<!-- Hidden form used to POST each interest selection -->
+<form id="addInterestForm" method="POST" action="{{ route('interests.store') }}" class="d-none">
+    @csrf
+    <input type="hidden" name="name" id="addInterestNameInput">
+</form>
+
 
 <!-- Add Project Modal -->
 <div class="modal fade" id="addProjectModal" tabindex="-1">
@@ -627,5 +658,126 @@
         var modal = new bootstrap.Modal(document.getElementById('editLinkModal'));
         modal.show();
     }
+
+    // ─── Department-Filtered Interest Modal ─────────────────────────────────────
+    (function () {
+        // Already-selected interest names (from PHP → JS, lowercased for comparison)
+        const selectedInterests = new Set(
+            @json($profile->interests->pluck('name')->map(fn($n) => strtolower(trim($n))))
+        );
+
+        // The student's department (passed from PHP)
+        const studentDepartment = @json($profile->department ?? 'General');
+
+        // Preload department suggestions directly from PHP to avoid any delay
+        let allSuggestions = @json($departmentSuggestions ?? []);
+
+        const tagsGrid      = document.getElementById('interestTagsGrid');
+        const searchInput   = document.getElementById('interestSearchInput');
+        const noResults     = document.getElementById('interestNoResults');
+        const loadingSpinner = document.getElementById('interestLoadingSpinner');
+        const deptLabel     = document.getElementById('interestDeptLabel');
+
+        // Populate suggestions immediately and whenever modal opens
+        const addInterestModal = document.getElementById('addInterestModal');
+        addInterestModal.addEventListener('show.bs.modal', function () {
+            if (deptLabel) {
+                deptLabel.textContent = studentDepartment || 'General';
+            }
+            if (searchInput) searchInput.value = '';
+
+            if (allSuggestions && allSuggestions.length > 0) {
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+                renderTags(allSuggestions);
+            } else {
+                fetchSuggestions();
+            }
+        });
+
+        function fetchSuggestions() {
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            if (noResults) noResults.classList.add('d-none');
+            if (tagsGrid)  tagsGrid.innerHTML = '';
+
+            const dept = encodeURIComponent(studentDepartment || 'General');
+            fetch('/interests/suggestions?department=' + dept, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then(function (data) {
+                allSuggestions = Array.isArray(data) ? data : Object.values(data);
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+                renderTags(allSuggestions);
+            })
+            .catch(function (err) {
+                console.error('Failed to load interest suggestions:', err);
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+                if (tagsGrid) tagsGrid.innerHTML = '<p class="text-danger small">Could not load suggestions. Please try again.</p>';
+            });
+        }
+
+        function renderTags(list) {
+            if (!tagsGrid) return;
+            tagsGrid.innerHTML = '';
+
+            const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+            const filtered = (list || []).filter(function (name) {
+                return q === '' || String(name).toLowerCase().includes(q);
+            });
+
+            if (filtered.length === 0) {
+                if (noResults) noResults.classList.remove('d-none');
+                return;
+            }
+            if (noResults) noResults.classList.add('d-none');
+
+            filtered.forEach(function (name) {
+                const alreadyAdded = selectedInterests.has(String(name).trim().toLowerCase());
+
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.classList.add('interest-suggestion-pill');
+                if (alreadyAdded) {
+                    pill.classList.add('already-added');
+                    pill.title = 'Already added to your profile';
+                    pill.disabled = true;
+                    pill.innerHTML = '<i class="bi bi-check-lg me-1"></i>' + escapeHtml(name);
+                } else {
+                    pill.innerHTML = '<i class="bi bi-plus-lg me-1"></i>' + escapeHtml(name);
+                    pill.addEventListener('click', function () {
+                        submitInterest(name, pill);
+                    });
+                }
+                tagsGrid.appendChild(pill);
+            });
+        }
+
+        function submitInterest(name, pill) {
+            // Disable pill immediately to prevent double-click
+            pill.disabled = true;
+            pill.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>' + escapeHtml(name);
+
+            document.getElementById('addInterestNameInput').value = name;
+            document.getElementById('addInterestForm').submit();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Search filtering
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                renderTags(allSuggestions);
+            });
+        }
+    })();
 </script>
 @endpush
+

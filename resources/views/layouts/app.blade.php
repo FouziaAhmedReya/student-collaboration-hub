@@ -178,6 +178,36 @@
             cursor: pointer;
         }
 
+        /* Interest suggestion pills in the Add Interest modal */
+        .interest-suggestion-pill {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.35rem 0.85rem;
+            border-radius: 50px;
+            border: 1px solid #cbd5e1;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .interest-suggestion-pill:hover:not(:disabled) {
+            background-color: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+        }
+
+        .interest-suggestion-pill.already-added {
+            background-color: #dcfce7;
+            border-color: #86efac;
+            color: #15803d;
+            cursor: default;
+            opacity: 0.8;
+        }
+
         .progress-hub {
             height: 8px;
             background-color: #e2e8f0;

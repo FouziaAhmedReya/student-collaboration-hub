@@ -49,22 +49,14 @@ class Profile extends Model
 
     public function getCompletionPercentage(): int
     {
-        $points = 0;
-        $total = 10; // 10 criteria
+        // Profile Completion = average proficiency of the student's technical skills.
+        // If no skills exist, return 0 to avoid division by zero.
+        $skills = $this->skills;
 
-        if ($this->user && $this->user->name) $points++;
-        if ($this->profile_photo) $points++;
-        if ($this->department) $points++;
-        if ($this->semester) $points++;
-        if ($this->university) $points++;
-        if ($this->about_me) $points++;
-        if ($this->skills()->exists()) $points++;
-        if ($this->interests()->exists()) $points++;
-        if ($this->projects()->exists()) $points++;
-        if ($this->portfolioLinks()->exists()) $points++;
-        if ($this->latitude !== null) $points++; // Note: using 11 criteria here based on prompt
+        if ($skills->isEmpty()) {
+            return 0;
+        }
 
-        $totalCriteria = 11;
-        return (int) round(($points / $totalCriteria) * 100);
+        return (int) round($skills->avg('proficiency'));
     }
 }

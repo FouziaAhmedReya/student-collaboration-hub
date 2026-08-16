@@ -21,8 +21,9 @@ class ProfileController extends Controller
         }
 
         $completionPercentage = $profile->getCompletionPercentage();
+        $departmentSuggestions = \App\Models\DepartmentInterest::forDepartment($profile->department ?? 'General')->pluck('name');
 
-        return view('profile.show', compact('user', 'profile', 'completionPercentage'));
+        return view('profile.show', compact('user', 'profile', 'completionPercentage', 'departmentSuggestions'));
     }
 
     public function edit()

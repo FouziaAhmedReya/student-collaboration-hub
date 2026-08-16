@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/skills/{skill}', [SkillController::class, 'update'])->name('skills.update');
     Route::delete('/skills/{skill}', [SkillController::class, 'destroy'])->name('skills.destroy');
 
+    Route::get('/interests/suggestions', [InterestController::class, 'suggestions'])->name('interests.suggestions');
     Route::post('/interests', [InterestController::class, 'store'])->name('interests.store');
     Route::delete('/interests/{interest}', [InterestController::class, 'destroy'])->name('interests.destroy');
 

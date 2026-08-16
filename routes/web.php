@@ -4,7 +4,8 @@ use App\Http\Controllers\Modules\Fouzia\NoteController;
 use App\Http\Controllers\Modules\Tuli\ProjectIdeaGeneratorController;
 use App\Http\Controllers\Modules\Tuli\TeamRecommendationController;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Modules\Sayeefa\ProjectTaskController;
+use App\Http\Controllers\Modules\Sayeefa\GroupChatController;
 Route::redirect('/', '/notes');
 
 // Fouzia Module - Notes
@@ -36,4 +37,30 @@ Route::prefix('api')->group(function () {
     Route::post('/ideas/generate', [ProjectIdeaGeneratorController::class, 'generate']);
     Route::get('/teammates', [TeamRecommendationController::class, 'index']);
     Route::post('/teams/match', [TeamRecommendationController::class, 'match']);
+});
+// Sayeefa Module - Project Task Management (Web)
+Route::get('/tasks', [ProjectTaskController::class, 'index'])->name('tasks.index');
+
+// Sayeefa Module - Project Task Management (API)
+Route::prefix('api')->group(function () {
+    Route::get('/projects', [ProjectTaskController::class, 'apiProjects']);
+    Route::post('/projects', [ProjectTaskController::class, 'storeProject']);
+    Route::get('/tasks', [ProjectTaskController::class, 'apiTasks']);
+    Route::post('/tasks', [ProjectTaskController::class, 'store']);
+    Route::put('/tasks/{task}', [ProjectTaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [ProjectTaskController::class, 'destroy']);
+});
+
+// Sayeefa Module - Group Chat (Web)
+Route::get('/group-chat', [GroupChatController::class, 'index'])->name('group-chat.index');
+
+// Sayeefa Module - Group Chat (API)
+Route::prefix('api')->group(function () {
+    Route::get('/chat-groups', [GroupChatController::class, 'apiGroups']);
+    Route::post('/chat-groups', [GroupChatController::class, 'storeGroup']);
+    Route::get('/chat-groups/{group}/messages', [GroupChatController::class, 'apiMessages']);
+    Route::post('/chat-groups/{group}/messages', [GroupChatController::class, 'sendMessage']);
+    Route::get('/chat-groups/{group}/meetings', [GroupChatController::class, 'apiMeetings']);
+    Route::post('/chat-groups/{group}/meetings', [GroupChatController::class, 'storeMeeting']);
+    Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
 });

@@ -33,6 +33,12 @@
                 <a href="{{ route('team-recommendations.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('team-recommendations.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
                     Team Matcher
                 </a>
+                <a href="{{ route('tasks.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('tasks.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
+                    Tasks
+                </a>
+                <a href="{{ route('group-chat.index') }}" class="flex h-full items-center border-b-2 {{ request()->routeIs('group-chat.*') ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-900' }} px-3 text-sm font-medium">
+                    Group Chat
+                </a>
             </nav>
         </div>
     </header>

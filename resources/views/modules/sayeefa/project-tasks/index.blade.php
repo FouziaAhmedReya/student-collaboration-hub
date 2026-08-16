@@ -8,6 +8,30 @@
         <p class="text-sm text-slate-500">Create projects, assign tasks, track deadlines, and monitor completion.</p>
     </div>
 
+    {{-- Projects list --}}
+    <div class="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-900">Your Projects</h2>
+            <span class="text-xs text-slate-500">{{ $projects->count() }} project(s)</span>
+        </div>
+        <ul id="project-list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            @forelse ($projects as $project)
+                <li class="rounded-lg border border-slate-200 p-4">
+                    <p class="font-medium text-slate-900">{{ $project->title }}</p>
+                    @if ($project->required_skills)
+                        <p class="mt-1 text-xs text-slate-500">Skills: {{ $project->required_skills }}</p>
+                    @endif
+                    <p class="mt-1 text-xs text-slate-500">Team size: {{ $project->team_size }}</p>
+                    <p class="mt-2 text-xs font-medium text-blue-600">
+                        {{ $tasks->where('project_id', $project->id)->count() }} task(s)
+                    </p>
+                </li>
+            @empty
+                <li class="text-sm text-slate-400">No projects yet — create one below.</li>
+            @endforelse
+        </ul>
+    </div>
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {{-- Left column: create project + create task --}}
         <div class="space-y-6 lg:col-span-1">
@@ -128,10 +152,7 @@
             </div>
         </div>
     </div>
-@endsection
-
-@push('scripts')
-<script>
+    <script>
 document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const headers = {
@@ -149,7 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Could not create project. Check the fields and try again.');
+            const errorBody = await response.text();
+            alert('Could not create project (status ' + response.status + '):\n' + errorBody);
+            console.error('Create project failed', response.status, errorBody);
         }
     });
 
@@ -162,7 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Could not create task. Check the fields and try again.');
+            const errorBody = await response.text();
+            alert('Could not create task (status ' + response.status + '):\n' + errorBody);
+            console.error('Create task failed', response.status, errorBody);
         }
     });
 
@@ -190,4 +215,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-@endpush
+@endsection

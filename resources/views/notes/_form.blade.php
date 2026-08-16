@@ -16,7 +16,7 @@
         'Physics',
         'Public Health',
         'Social Relations',
-        'Sociology'
+        'Sociology',
         'Others',
     ];
 

@@ -42,4 +42,8 @@ return [
         'folder' => env('CLOUDINARY_FOLDER', 'student-collaboration-hub/notes'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY'),
+    ],
+
 ];

@@ -102,10 +102,7 @@
             </div>
         @endif
     </div>
-@endsection
-
-@push('scripts')
-<script>
+    <script>
 document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const headers = {
@@ -122,7 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const group = await response.json();
             window.location.href = `{{ route('group-chat.index') }}?group_id=${group.id}`;
         } else {
-            alert('Could not create group.');
+            const errorBody = await response.text();
+            alert('Could not create group (status ' + response.status + '):\n' + errorBody);
+            console.error('Create group failed', response.status, errorBody);
         }
     });
 
@@ -134,6 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(`/api/chat-groups/${groupId}/messages`, { method: 'POST', headers, body: JSON.stringify(payload) });
         if (response.ok) {
             window.location.reload();
+        } else {
+            const errorBody = await response.text();
+            alert('Could not send message (status ' + response.status + '):\n' + errorBody);
+            console.error('Send message failed', response.status, errorBody);
         }
     });
 
@@ -151,4 +154,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-@endpush
+@endsection

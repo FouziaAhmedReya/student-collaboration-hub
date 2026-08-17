@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Modules\Sayeefa;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\GoogleCalendarService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -118,16 +120,16 @@ class ProjectTaskController extends Controller
     }
 
     /**
-     * Placeholder Google Calendar sync.
-     *
-     * TODO: replace with a real Google Calendar API call (OAuth + Calendar
-     * events.insert) once credentials are set up in .env. For now this
-     * returns a stable fake event id so the rest of the feature (storing,
-     * displaying, "synced" badge in the UI) works end-to-end and is easy
-     * to swap out later without touching the controller's public shape.
+     * Creates a matching event on the shared Google group calendar.
+     * Returns null (instead of throwing) if the calendar isn't configured
+     * yet, so task creation always still works.
      */
-    private function syncTaskToGoogleCalendar(array $data): string
+    private function syncTaskToGoogleCalendar(array $data): ?string
     {
-        return 'gcal_'.uniqid();
+        return app(GoogleCalendarService::class)->createEvent(
+            title: $data['title'],
+            description: $data['description'] ?? null,
+            start: Carbon::parse($data['deadline'])->setTime(9, 0),
+        );
     }
 }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Modules\Sayeefa;
 use App\Http\Controllers\Controller;
 use App\Models\ChatGroup;
 use App\Models\Meeting;
+use App\Services\GoogleCalendarService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -99,12 +101,16 @@ class GroupChatController extends Controller
     }
 
     /**
-     * Placeholder Google Calendar sync — see the matching method in
-     * ProjectTaskController for the same TODO (real OAuth + Calendar API
-     * call to be wired in once credentials exist).
+     * Creates a matching event on the shared Google group calendar.
+     * Returns null (instead of throwing) if the calendar isn't configured
+     * yet, so meeting creation always still works.
      */
-    private function syncMeetingToGoogleCalendar(array $data): string
+    private function syncMeetingToGoogleCalendar(array $data): ?string
     {
-        return 'gcal_'.uniqid();
+        return app(GoogleCalendarService::class)->createEvent(
+            title: $data['title'],
+            description: null,
+            start: Carbon::parse($data['meeting_time']),
+        );
     }
 }

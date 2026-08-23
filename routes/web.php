@@ -102,6 +102,7 @@ Route::controller(BookMarketplaceController::class)
     });
 
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
+use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
 
 // Tuli Module - Web Routes
 Route::prefix('project-ideas')->name('project-ideas.')->group(function () {
@@ -120,6 +121,13 @@ Route::prefix('progress-dashboard')->name('progress-dashboard.')->group(function
     Route::get('/', [ProgressDashboardController::class, 'index'])->name('index');
 });
 
+Route::prefix('events')->name('events.')->group(function () {
+    Route::get('/', [EventAnnouncementController::class, 'index'])->name('index');
+    Route::post('/', [EventAnnouncementController::class, 'store'])->name('store');
+    Route::put('/{event}', [EventAnnouncementController::class, 'update'])->name('update');
+    Route::delete('/{event}', [EventAnnouncementController::class, 'destroy'])->name('destroy');
+});
+
 // Tuli Module - API Endpoints (matching tuli_saha backend specs)
 Route::prefix('api')->group(function () {
     Route::get('/ideas', [ProjectIdeaGeneratorController::class, 'index']);
@@ -129,6 +137,10 @@ Route::prefix('api')->group(function () {
     Route::get('/teammates', [TeamRecommendationController::class, 'index']);
     Route::post('/teams/match', [TeamRecommendationController::class, 'match']);
     Route::get('/progress', [ProgressDashboardController::class, 'apiSummary']);
+    Route::get('/events', [EventAnnouncementController::class, 'index']);
+    Route::post('/events', [EventAnnouncementController::class, 'store']);
+    Route::put('/events/{event}', [EventAnnouncementController::class, 'update']);
+    Route::delete('/events/{event}', [EventAnnouncementController::class, 'destroy']);
 });
 // Sayeefa Module - Project Task Management (Web)
 Route::get('/tasks', [ProjectTaskController::class, 'index'])->name('tasks.index');

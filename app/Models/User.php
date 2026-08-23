@@ -4,7 +4,9 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -30,6 +32,26 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function createdStudyGroups(): HasMany
+    {
+        return $this->hasMany(StudyGroup::class, 'creator_id');
+    }
+
+    public function studyGroupMemberships(): HasMany
+    {
+        return $this->hasMany(StudyGroupMember::class);
+    }
+
+    public function studyGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(StudyGroup::class, 'study_group_members');
     }
 
     public function booksForSale(): HasMany

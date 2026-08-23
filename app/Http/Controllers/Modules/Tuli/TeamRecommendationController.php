@@ -53,6 +53,9 @@ class TeamRecommendationController extends Controller
                     return $item->id == $projectId || $item->raw_id == $projectId;
                 });
             }
+            if (!$project && ($request->wantsJson() || $request->is('api/*'))) {
+                return response()->json(['error' => 'project not found'], 404);
+            }
         }
 
         $recommendedTeammates = [];

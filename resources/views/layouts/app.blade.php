@@ -140,6 +140,34 @@
                     Team Matcher
                 </a>
 
+                {{-- Progress Dashboard --}}
+                <a
+                    href="{{ route('progress-dashboard.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('progress-dashboard.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Progress Dashboard
+                </a>
+
+                {{-- Events & Workshops --}}
+                <a
+                    href="{{ route('events.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('events.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Events & Workshops
+                </a>
+
                 {{-- Tasks --}}
                 <a
                     href="{{ route('tasks.index') }}"

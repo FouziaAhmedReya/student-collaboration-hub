@@ -39,7 +39,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Seed default initial project
+        // Default project seed if needed
         DB::table('projects')->insert([
             'id' => 1,
             'title' => 'Student Productivity App',
@@ -47,64 +47,6 @@ return new class extends Migration
             'team_size' => 3,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
-
-        // Seed default mock students matching tuli_saha
-        DB::table('students')->insert([
-            [
-                'name' => 'Alice Smith',
-                'department' => 'Computer Science',
-                'skills' => 'Python, Flask, SQLite, React',
-                'interests' => 'AI, Productivity Tools',
-                'completed_projects' => 'Portfolio Website, CLI Task Manager',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Bob Johnson',
-                'department' => 'Software Engineering',
-                'skills' => 'React, Figma, UI Design, JavaScript',
-                'interests' => 'UX/UI, Front-end',
-                'completed_projects' => 'E-commerce UI, Mobile Redesign',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Charlie Brown',
-                'department' => 'Computer Science',
-                'skills' => 'Figma, UI Design, CSS, HTML',
-                'interests' => 'Design Systems, Web Design',
-                'completed_projects' => 'Blog Template, Personal Portfolio',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Diana Prince',
-                'department' => 'Information Technology',
-                'skills' => 'Node.js, MongoDB, Express, React',
-                'interests' => 'Fullstack Development, Cloud',
-                'completed_projects' => 'Task Manager API, Chat App',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Evan Wright',
-                'department' => 'Computer Science',
-                'skills' => 'Python, Machine Learning, TensorFlow, SQL',
-                'interests' => 'Data Science, Intelligent Systems',
-                'completed_projects' => 'Image Classifier, Sales Predictor',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Fiona Gallagher',
-                'department' => 'Software Engineering',
-                'skills' => 'Java, Spring Boot, MySQL',
-                'interests' => 'Backend Systems, Microservices',
-                'completed_projects' => 'Library Management System, REST API',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
         ]);
     }
 

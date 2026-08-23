@@ -176,6 +176,9 @@
                         </div>
 
                         <div class="mt-6 pt-4 border-t border-slate-100 text-xs space-y-1 text-slate-500">
+                            @if(!empty($student['bio']))
+                                <p><strong class="font-semibold text-slate-700">Bio:</strong> {{ Str::limit($student['bio'], 100) }}</p>
+                            @endif
                             @if(!empty($student['_interests']))
                                 <p><strong class="font-semibold text-slate-700">Interests:</strong> {{ $student['_interests'] }}</p>
                             @endif

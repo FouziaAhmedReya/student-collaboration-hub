@@ -387,6 +387,6 @@
                rounded-xl bg-blue-600 px-6 text-sm font-bold
                text-white hover:bg-blue-700"
     >
-        {{ $editing ? 'Save Changes' : 'Publish Book' }}
+        {{ $editing ? 'Save Changes' : ' List Book for Sale' }}
     </button>
 </div>

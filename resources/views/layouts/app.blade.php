@@ -30,10 +30,12 @@
     {{-- Main Header --}}
     <header class="border-b border-slate-200 bg-white">
 
-        <div class="mx-auto flex min-h-16 max-w-7xl
-                    flex-col justify-between gap-3 px-4
-                    py-3 sm:px-6 lg:flex-row lg:items-center
-                    lg:px-8 lg:py-0">
+        <div
+            class="mx-auto flex min-h-16 max-w-7xl
+                   flex-col justify-between gap-3 px-4
+                   py-3 sm:px-6 lg:flex-row lg:items-center
+                   lg:px-8 lg:py-0"
+        >
 
             {{-- Logo --}}
             <a
@@ -42,9 +44,11 @@
                 aria-label="Student Collaboration Hub"
             >
 
-                <span class="grid size-10 place-items-center
-                             rounded-xl bg-blue-600 text-white
-                             shadow-sm shadow-blue-200">
+                <span
+                    class="grid size-10 place-items-center
+                           rounded-xl bg-blue-600 text-white
+                           shadow-sm shadow-blue-200"
+                >
 
                     <svg
                         viewBox="0 0 24 24"
@@ -243,6 +247,36 @@
                 </a>
 
 
+                {{-- Meeting Scheduler --}}
+                <a
+                    href="{{ route('meetings.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('meetings.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Meetings
+                </a>
+
+
+                {{-- File Sharing --}}
+                <a
+                    href="{{ route('files.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('files.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Files
+                </a>
+
+
                 {{-- Profile & Skills --}}
                 <a
                     href="{{ route('profile.index') }}"
@@ -280,17 +314,23 @@
 
 
     {{-- Main Content --}}
-    <main class="mx-auto w-full max-w-7xl px-4
-                 py-8 sm:px-6 lg:px-8 lg:py-10">
-
+    <main
+        class="mx-auto w-full max-w-7xl
+               px-4 py-8
+               sm:px-6
+               lg:px-8 lg:py-10"
+    >
 
         {{-- Success Message --}}
         @if (session('success'))
 
             <div
-                class="mb-6 flex items-start gap-3 rounded-xl
-                       border border-emerald-200 bg-emerald-50
-                       px-4 py-3 text-sm text-emerald-900"
+                class="mb-6 flex items-start gap-3
+                       rounded-xl border
+                       border-emerald-200
+                       bg-emerald-50
+                       px-4 py-3
+                       text-sm text-emerald-900"
                 role="status"
             >
 
@@ -325,8 +365,11 @@
         @if ($errors->any())
 
             <div
-                class="mb-6 rounded-xl border border-red-200
-                       bg-red-50 px-4 py-3 text-sm text-red-800"
+                class="mb-6 rounded-xl
+                       border border-red-200
+                       bg-red-50
+                       px-4 py-3
+                       text-sm text-red-800"
                 role="alert"
             >
 

@@ -10,12 +10,12 @@ use App\Http\Controllers\Modules\Fouzia\BookMarketplaceController;
 use App\Http\Controllers\Modules\Rayhan\ProfileSkillController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
+use App\Http\Controllers\Modules\Sayeefa\MeetingSchedulerController;
+use App\Http\Controllers\Modules\Sayeefa\FileSharingController;
 use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
 use App\Http\Controllers\Modules\Fouzia\ResourceRequestController;
-
-
 
 Route::redirect('/', '/notes');
 
@@ -36,102 +36,29 @@ Route::controller(BookMarketplaceController::class)
     ->prefix('marketplace')
     ->name('marketplace.')
     ->group(function () {
-        Route::get(
-            '/',
-            'index'
-        )->name('index');
-
-        Route::get(
-            '/sell',
-            'create'
-        )->name('create');
-
-        Route::post(
-            '/',
-            'store'
-        )->name('store');
-
-        Route::get(
-            '/activity',
-            'manage'
-        )->name('manage');
-
-        Route::post(
-            '/books/{book}/purchase',
-            'purchase'
-        )->name('orders.store');
-
-        Route::patch(
-            '/orders/{order}/accept',
-            'acceptOrder'
-        )->name('orders.accept');
-
-        Route::patch(
-            '/orders/{order}/reject',
-            'rejectOrder'
-        )->name('orders.reject');
-
-        Route::patch(
-            '/orders/{order}/cancel',
-            'cancelOrder'
-        )->name('orders.cancel');
-
-        Route::patch(
-            '/books/{book}/relist',
-            'relist'
-        )->name('relist');
-
-        Route::get(
-            '/{book}',
-            'show'
-        )->name('show');
-
-        Route::get(
-            '/{book}/edit',
-            'edit'
-        )->name('edit');
-
-        Route::put(
-            '/{book}',
-            'update'
-        )->name('update');
-
-        Route::delete(
-            '/{book}',
-            'destroy'
-        )->name('destroy');
+        Route::get('/', 'index')->name('index');
+        Route::get('/sell', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/activity', 'manage')->name('manage');
+        Route::post('/books/{book}/purchase', 'purchase')->name('orders.store');
+        Route::patch('/orders/{order}/accept', 'acceptOrder')->name('orders.accept');
+        Route::patch('/orders/{order}/reject', 'rejectOrder')->name('orders.reject');
+        Route::patch('/orders/{order}/cancel', 'cancelOrder')->name('orders.cancel');
+        Route::patch('/books/{book}/relist', 'relist')->name('relist');
+        Route::get('/{book}', 'show')->name('show');
+        Route::get('/{book}/edit', 'edit')->name('edit');
+        Route::put('/{book}', 'update')->name('update');
+        Route::delete('/{book}', 'destroy')->name('destroy');
     });
 
 // Fouzia Feature 3 - Tutor Finder
-// No authentication required
-
-Route::controller(
-    TutorFinderController::class
-)
+Route::controller(TutorFinderController::class)
     ->prefix('tutors')
     ->name('tutors.')
     ->group(function () {
-
-        // Tutor Finder page
-        Route::get(
-            '/',
-            'index'
-        )->name('index');
-
-
-        // Create tutor
-        Route::post(
-            '/',
-            'store'
-        )->name('store');
-
-
-        // Upload teaching material
-        Route::post(
-            '/{tutor}/materials',
-            'uploadMaterial'
-        )->name('materials.store');
-
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::post('/{tutor}/materials', 'uploadMaterial')->name('materials.store');
     });
 
 // Fouzia Feature 4 - Resource Request System
@@ -179,7 +106,7 @@ Route::prefix('events')->name('events.')->group(function () {
     Route::delete('/{event}', [EventAnnouncementController::class, 'destroy'])->name('destroy');
 });
 
-// Tuli Module - API Endpoints (matching tuli_saha backend specs)
+// Tuli Module - API Endpoints
 Route::prefix('api')->group(function () {
     Route::get('/ideas', [ProjectIdeaGeneratorController::class, 'index']);
     Route::post('/ideas/generate', [ProjectIdeaGeneratorController::class, 'generate']);
@@ -193,6 +120,7 @@ Route::prefix('api')->group(function () {
     Route::put('/events/{event}', [EventAnnouncementController::class, 'update']);
     Route::delete('/events/{event}', [EventAnnouncementController::class, 'destroy']);
 });
+
 // Sayeefa Module - Project Task Management (Web)
 Route::get('/tasks', [ProjectTaskController::class, 'index'])->name('tasks.index');
 
@@ -220,6 +148,28 @@ Route::prefix('api')->group(function () {
     Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
 });
 
+// Sayeefa Module - Meeting Scheduler (Web)
+Route::get('/meetings', [MeetingSchedulerController::class, 'index'])->name('meetings.index');
+
+// Sayeefa Module - Meeting Scheduler (API)
+Route::prefix('api')->group(function () {
+    Route::get('/meetings', [MeetingSchedulerController::class, 'apiMeetings']);
+    Route::post('/meetings', [MeetingSchedulerController::class, 'store']);
+    Route::put('/meetings/{meeting}', [MeetingSchedulerController::class, 'update']);
+    Route::delete('/meetings/{meeting}', [MeetingSchedulerController::class, 'destroy']);
+});
+
+// Sayeefa Module - File Sharing (Web)
+Route::get('/files', [FileSharingController::class, 'index'])->name('files.index');
+
+// Sayeefa Module - File Sharing (API)
+Route::prefix('api')->group(function () {
+    Route::get('/files', [FileSharingController::class, 'apiFiles']);
+    Route::post('/files', [FileSharingController::class, 'store']);
+    Route::get('/projects/{project}/meetings-and-tasks', [FileSharingController::class, 'apiProjectContext']);
+    Route::delete('/files/{file}', [FileSharingController::class, 'destroy']);
+});
+
 // Rayhan Module 1 - Student Profile & Skill Management
 Route::prefix('profile')->name('profile.')->group(function () {
     Route::get('/', [ProfileSkillController::class, 'index'])->name('index');
@@ -237,7 +187,7 @@ Route::prefix('profile')->name('profile.')->group(function () {
     Route::put('/interests/{interest}', [ProfileSkillController::class, 'updateInterest'])->name('interests.update');
     Route::delete('/interests/{interest}', [ProfileSkillController::class, 'destroyInterest'])->name('interests.destroy');
 
-    // Student Completed Projects (student_projects table)
+    // Student Completed Projects
     Route::post('/projects', [ProfileSkillController::class, 'storeProject'])->name('projects.store');
     Route::put('/projects/{project}', [ProfileSkillController::class, 'updateProject'])->name('projects.update');
     Route::delete('/projects/{project}', [ProfileSkillController::class, 'destroyProject'])->name('projects.destroy');
@@ -274,7 +224,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// Dashboard — post-login landing (redirect to notes)
+// Dashboard — post-login landing
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         return redirect()->route('notes.index');

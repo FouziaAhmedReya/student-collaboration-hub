@@ -13,11 +13,6 @@ use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
 
 Route::redirect('/', '/notes');
 
-// Login fallback route for guest redirection / Breeze compatibility
-Route::get('/login', function () {
-    return redirect()->route('profile.index');
-})->name('login');
-
 // Fouzia Module - Notes
 Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group(function () {
     Route::get('/', 'index')->name('index');
@@ -203,3 +198,12 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{member}', 'destroy')->name('destroy');
     });
 });
+
+// Dashboard — post-login landing (redirect to notes)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        return redirect()->route('notes.index');
+    })->name('dashboard');
+});
+
+require __DIR__.'/auth.php';

@@ -145,11 +145,11 @@
                                 </div>
                                 <div class="col-6">
                                     <div class="text-muted"><i class="bi bi-calendar-event me-1 text-primary"></i> Meeting Date</div>
-                                    <div class="fw-semibold text-dark">{{ $group->meeting_date ? $group->meeting_date->format('M d, Y') : 'N/A' }}</div>
+                                    <div class="fw-semibold text-dark">{{ $group->meeting_date->format('M d, Y') }}</div>
                                 </div>
                                 <div class="col-6">
                                     <div class="text-muted"><i class="bi bi-clock me-1 text-primary"></i> Meeting Time</div>
-                                    <div class="fw-semibold text-dark">{{ $group->meeting_time ? date('g:i A', strtotime($group->meeting_time)) : 'N/A' }}</div>
+                                    <div class="fw-semibold text-dark">{{ date('g:i A', strtotime($group->meeting_time)) }}</div>
                                 </div>
                                 <div class="col-6">
                                     <div class="text-muted"><i class="bi bi-person-circle me-1 text-primary"></i> Created By</div>
@@ -169,28 +169,24 @@
                             @endif
 
                             <!-- Mini Map Preview Box -->
-                            <div class="rounded-3 overflow-hidden border" style="height: 120px; background-color: #f1f5f9; position: relative;">
-                                @if(env('GOOGLE_MAPS_API_KEY') && $group->latitude && $group->longitude)
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        style="border:0"
-                                        loading="lazy"
-                                        allowfullscreen
-                                        src="https://www.google.com/maps/embed/v1/place?key={{ env('GOOGLE_MAPS_API_KEY') }}&q={{ $group->latitude }},{{ $group->longitude }}">
-                                    </iframe>
+                            <div class="rounded-3 overflow-hidden border mb-1" style="height: 130px; background-color: #f1f5f9; position: relative;">
+                                @if($group->latitude && $group->longitude)
+                                    <div id="groupCardMap_{{ $group->id }}" class="w-100 h-100 group-card-map" data-lat="{{ $group->latitude }}" data-lng="{{ $group->longitude }}" data-title="{{ $group->location_name ?? $group->name }}"></div>
                                 @else
                                     <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-2" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
                                         <i class="bi bi-geo-alt-fill text-danger fs-3 mb-1"></i>
-                                        <span class="small fw-semibold text-dark text-truncate px-2">{{ $group->location_name ?? 'Campus / Library' }}</span>
-                                        @if($group->latitude && $group->longitude)
-                                            <span class="text-muted" style="font-size: 0.72rem;">📍 {{ number_format($group->latitude, 4) }}, {{ number_format($group->longitude, 4) }}</span>
-                                        @else
-                                            <span class="text-muted" style="font-size: 0.72rem;">Meeting Location Preview</span>
-                                        @endif
+                                        <span class="small fw-semibold text-dark text-truncate px-2">{{ $group->location_name ?? 'Location Not Set' }}</span>
+                                        <span class="text-muted" style="font-size: 0.72rem;">Map location unavailable</span>
                                     </div>
                                 @endif
                             </div>
+                            @if($group->latitude && $group->longitude)
+                                <div class="text-end">
+                                    <a href="https://www.openstreetmap.org/?mlat={{ $group->latitude }}&mlon={{ $group->longitude }}#map=17/{{ $group->latitude }}/{{ $group->longitude }}" target="_blank" rel="noopener noreferrer" class="text-secondary small text-decoration-none" style="font-size: 0.75rem;">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> OpenStreetMap
+                                    </a>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Card Action Buttons (Pushed to bottom) -->
@@ -288,3 +284,19 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mapCards = document.querySelectorAll('.group-card-map');
+        mapCards.forEach(function (card) {
+            const lat = parseFloat(card.dataset.lat);
+            const lng = parseFloat(card.dataset.lng);
+            const title = card.dataset.title || 'Study Group Location';
+            if (!isNaN(lat) && !isNaN(lng)) {
+                HubMap.initDisplayMap(card, lat, lng, title, 14);
+            }
+        });
+    });
+</script>
+@endpush

@@ -213,27 +213,19 @@
                         </div>
                     </div>
 
-                    <!-- Map Preview Container -->
-                    <div class="rounded-3 overflow-hidden border mb-3" style="height: 200px; background-color: #f1f5f9; position: relative;">
-                        <div id="mapPreviewContainer" class="w-100 h-100">
-                            @if(env('GOOGLE_MAPS_API_KEY') && $group->latitude && $group->longitude)
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    style="border:0"
-                                    loading="lazy"
-                                    allowfullscreen
-                                    src="https://www.google.com/maps/embed/v1/place?key={{ env('GOOGLE_MAPS_API_KEY') }}&q={{ $group->latitude }},{{ $group->longitude }}">
-                                </iframe>
-                            @else
-                                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-3" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
-                                    <i class="bi bi-geo-alt-fill text-danger fs-1 mb-2"></i>
-                                    <h6 class="fw-bold text-dark mb-1" id="previewLocationNameDisplay">{{ old('location_name', $group->location_name ?? 'BRAC University Library') }}</h6>
-                                    <p class="small text-secondary mb-0" id="previewLocationAddressDisplay">{{ old('location_address', $group->location_address ?? 'UB02 Building, 3rd Floor, Mohakhali, Dhaka') }}</p>
-                                    <span class="badge bg-white text-secondary border mt-2">Interactive Location Selected</span>
-                                </div>
-                            @endif
+                    <!-- Location Search with Nominatim Geocoding -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Search Place / Address</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="groupLocationSearchInput" class="form-control" placeholder="e.g. BRAC University, Mohakhali...">
+                            <button type="button" class="btn btn-outline-primary" onclick="searchGroupPlace()">Search</button>
                         </div>
+                    </div>
+
+                    <!-- Interactive Leaflet Map Picker Container -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Click or drag marker on the map to change meeting venue</label>
+                        <div id="groupEditMap" class="rounded-3 border" style="height: 220px; width: 100%;"></div>
                     </div>
 
                     <!-- Location Name Input -->
@@ -324,23 +316,52 @@
         }
     }
 
+    let groupPickerInstance = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        groupPickerInstance = HubMap.initPickerMap({
+            containerId: 'groupEditMap',
+            latInputId: 'latitude',
+            lngInputId: 'longitude',
+            nameInputId: 'location_name',
+            addressInputId: 'location_address',
+            initialLat: {{ (float)old('latitude', $group->latitude ?? 23.7806) }},
+            initialLng: {{ (float)old('longitude', $group->longitude ?? 90.4068) }}
+        });
+    });
+
     function setLocationPreset(name, address, lat, lng) {
         document.getElementById('location_name').value = name;
         document.getElementById('location_address').value = address;
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lng;
-        updateDisplayPreview();
+        if (groupPickerInstance) {
+            groupPickerInstance.setLocation(lat, lng);
+        }
     }
 
-    function updateDisplayPreview() {
-        const name = document.getElementById('location_name').value || 'Selected Location';
-        const address = document.getElementById('location_address').value || 'Location Address';
+    function searchGroupPlace() {
+        const query = document.getElementById('groupLocationSearchInput').value;
+        if (!query) return;
 
-        const nameDisplay = document.getElementById('previewLocationNameDisplay');
-        const addrDisplay = document.getElementById('previewLocationAddressDisplay');
+        HubMap.searchNominatim(query, function (results) {
+            if (results && results.length > 0) {
+                const first = results[0];
+                const lat = parseFloat(first.lat);
+                const lng = parseFloat(first.lon);
 
-        if (nameDisplay) nameDisplay.innerText = name;
-        if (addrDisplay) addrDisplay.innerText = address;
+                document.getElementById('location_address').value = first.display_name;
+                if (!document.getElementById('location_name').value) {
+                    document.getElementById('location_name').value = first.name || query;
+                }
+
+                if (groupPickerInstance) {
+                    groupPickerInstance.setLocation(lat, lng);
+                }
+            } else {
+                alert('No location found for this search.');
+            }
+        });
     }
 </script>
 @endpush

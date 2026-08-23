@@ -10,7 +10,8 @@ use App\Http\Controllers\Modules\Fouzia\BookMarketplaceController;
 use App\Http\Controllers\Modules\Rayhan\ProfileSkillController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
-
+use App\Http\Controllers\Modules\Sayeefa\MeetingSchedulerController;
+use App\Http\Controllers\Modules\Sayeefa\FileSharingController;
 Route::redirect('/', '/notes');
 
 // Login fallback route for guest redirection / Breeze compatibility
@@ -149,7 +150,27 @@ Route::prefix('api')->group(function () {
     Route::post('/chat-groups/{group}/meetings', [GroupChatController::class, 'storeMeeting']);
     Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
 });
+// Sayeefa Module - Meeting Scheduler (Web)
+Route::get('/meetings', [MeetingSchedulerController::class, 'index'])->name('meetings.index');
 
+// Sayeefa Module - Meeting Scheduler (API)
+Route::prefix('api')->group(function () {
+    Route::get('/meetings', [MeetingSchedulerController::class, 'apiMeetings']);
+    Route::post('/meetings', [MeetingSchedulerController::class, 'store']);
+    Route::put('/meetings/{meeting}', [MeetingSchedulerController::class, 'update']);
+    Route::delete('/meetings/{meeting}', [MeetingSchedulerController::class, 'destroy']);
+});
+
+// Sayeefa Module - File Sharing (Web)
+Route::get('/files', [FileSharingController::class, 'index'])->name('files.index');
+
+// Sayeefa Module - File Sharing (API)
+Route::prefix('api')->group(function () {
+    Route::get('/files', [FileSharingController::class, 'apiFiles']);
+    Route::post('/files', [FileSharingController::class, 'store']);
+    Route::get('/projects/{project}/meetings-and-tasks', [FileSharingController::class, 'apiProjectContext']);
+    Route::delete('/files/{file}', [FileSharingController::class, 'destroy']);
+});
 // Rayhan Module 1 - Student Profile & Skill Management
 Route::prefix('profile')->name('profile.')->group(function () {
     Route::get('/', [ProfileSkillController::class, 'index'])->name('index');

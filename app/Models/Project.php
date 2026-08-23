@@ -14,4 +14,9 @@ class Project extends Model
         'required_skills',
         'team_size',
     ];
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }

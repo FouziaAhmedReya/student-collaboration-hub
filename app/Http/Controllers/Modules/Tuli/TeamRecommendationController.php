@@ -19,38 +19,15 @@ class TeamRecommendationController extends Controller
         @set_time_limit(120);
         $projectId = $request->query('project_id');
 
-        // Combine all Projects and ProjectIdeas into a unified list
-        $projectsList = Project::orderBy('created_at', 'desc')->get()->map(function ($p) {
-            return (object)[
-                'id' => 'p_' . $p->id,
-                'raw_id' => $p->id,
-                'type' => 'Project',
-                'title' => $p->title,
-                'required_skills' => $p->required_skills,
-                'team_size' => $p->team_size ?? 4,
-            ];
-        });
-
-        $ideasList = ProjectIdea::orderBy('created_at', 'desc')->get()->map(function ($i) {
-            return (object)[
-                'id' => 'i_' . $i->id,
-                'raw_id' => $i->id,
-                'type' => 'AI Idea',
-                'title' => $i->title,
-                'required_skills' => !empty($i->tech_stack) ? $i->tech_stack : $i->domain,
-                'team_size' => 4,
-            ];
-        });
-
-        $allProjects = $projectsList->concat($ideasList);
+        // Fetch all projects (only Project model, matching Dashboard)
+        $allProjects = Project::orderBy('created_at', 'desc')->get();
 
         $project = null;
         if (!empty($projectId)) {
             $project = $allProjects->firstWhere('id', $projectId);
             if (!$project) {
-                // Fallback check by raw_id
                 $project = $allProjects->first(function ($item) use ($projectId) {
-                    return $item->id == $projectId || $item->raw_id == $projectId;
+                    return $item->id == $projectId || (isset($item->raw_id) && $item->raw_id == $projectId);
                 });
             }
             if (!$project && ($request->wantsJson() || $request->is('api/*'))) {
@@ -63,13 +40,24 @@ class TeamRecommendationController extends Controller
 
         if ($project) {
             $requiredSkillsList = array_filter(array_map('trim', explode(',', strtolower($project->required_skills))));
-            $students = Student::all();
+            $students = $this->getCandidates();
 
             foreach ($students as $student) {
-                $studentSkills = array_filter(array_map('trim', explode(',', strtolower($student->skills))));
-                $overlap = count(array_intersect($requiredSkillsList, $studentSkills));
+                $studentSkills = array_filter(array_map('trim', explode(',', strtolower($student->skills ?? ''))));
+                $bioLower = strtolower(($student->about_me ?? '') . ' ' . ($student->bio ?? ''));
+                $interestsLower = strtolower($student->interests ?? '');
+
+                $overlap = 0;
+                foreach ($requiredSkillsList as $reqSkill) {
+                    if (in_array($reqSkill, $studentSkills)) {
+                        $overlap += 1.0;
+                    } elseif (str_contains($bioLower, $reqSkill) || str_contains($interestsLower, $reqSkill)) {
+                        $overlap += 0.8;
+                    }
+                }
+
                 $matchPct = count($requiredSkillsList) > 0
-                    ? (int) round(($overlap / count($requiredSkillsList)) * 100)
+                    ? (int) min(100, round(($overlap / count($requiredSkillsList)) * 100))
                     : 0;
 
                 $recommendedTeammates[] = [
@@ -78,8 +66,10 @@ class TeamRecommendationController extends Controller
                     'department' => $student->department,
                     'skills' => $student->skills,
                     'match_percent' => $matchPct,
+                    'bio' => !empty($student->bio) ? $student->bio : ($student->about_me ?? ''),
                     '_interests' => $student->interests,
                     '_completed_projects' => $student->completed_projects,
+                    '_about_me' => $student->about_me ?? '',
                 ];
             }
 
@@ -99,11 +89,12 @@ class TeamRecommendationController extends Controller
 
                 if (!empty($topMatches)) {
                     $studentContext = implode("\n", array_map(function ($s) {
-                        return "- {$s['name']} (Skills: {$s['skills']}, Interests: {$s['_interests']}, Completed Projects: {$s['_completed_projects']})";
+                        $bioInfo = !empty($s['bio']) ? " Bio: {$s['bio']}" : '';
+                        return "- {$s['name']} (Dept: {$s['department']}, Skills: {$s['skills']}, Interests: {$s['_interests']}, Completed Projects: {$s['_completed_projects']}{$bioInfo})";
                     }, $topMatches));
 
                     $prompt = "Explain why the following students are recommended for the project '{$project->title}' " .
-                        "requiring skills '{$project->required_skills}'. Highlight how their skills, interests, and completed projects align.\n" .
+                        "requiring skills '{$project->required_skills}'. Highlight how their technical skills, interests, completed projects, and personal bio/background align.\n" .
                         "Recommended Students:\n{$studentContext}";
 
                     $models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
@@ -132,7 +123,7 @@ class TeamRecommendationController extends Controller
 
         if ($request->wantsJson() || $request->is('api/*')) {
             $cleanTeammates = array_map(function ($item) {
-                unset($item['_interests'], $item['_completed_projects']);
+                unset($item['_interests'], $item['_completed_projects'], $item['_about_me']);
                 return $item;
             }, $recommendedTeammates);
 
@@ -184,14 +175,25 @@ class TeamRecommendationController extends Controller
         ]);
 
         $requiredSkillsList = array_filter(array_map('trim', explode(',', strtolower($requiredSkills))));
-        $students = Student::all();
+        $students = $this->getCandidates();
         $matches = [];
 
         foreach ($students as $student) {
-            $studentSkills = array_filter(array_map('trim', explode(',', strtolower($student->skills))));
-            $overlap = count(array_intersect($requiredSkillsList, $studentSkills));
+            $studentSkills = array_filter(array_map('trim', explode(',', strtolower($student->skills ?? ''))));
+            $bioLower = strtolower(($student->about_me ?? '') . ' ' . ($student->bio ?? ''));
+            $interestsLower = strtolower($student->interests ?? '');
+
+            $overlap = 0;
+            foreach ($requiredSkillsList as $reqSkill) {
+                if (in_array($reqSkill, $studentSkills)) {
+                    $overlap += 1.0;
+                } elseif (str_contains($bioLower, $reqSkill) || str_contains($interestsLower, $reqSkill)) {
+                    $overlap += 0.8;
+                }
+            }
+
             $matchPct = count($requiredSkillsList) > 0
-                ? (int) round(($overlap / count($requiredSkillsList)) * 100)
+                ? (int) min(100, round(($overlap / count($requiredSkillsList)) * 100))
                 : 0;
 
             $matches[] = [
@@ -201,6 +203,7 @@ class TeamRecommendationController extends Controller
                 '_skills' => $student->skills,
                 '_interests' => $student->interests,
                 '_completed_projects' => $student->completed_projects,
+                '_bio' => !empty($student->bio) ? $student->bio : ($student->about_me ?? ''),
             ];
         }
 
@@ -211,11 +214,12 @@ class TeamRecommendationController extends Controller
         $geminiKey = config('services.gemini.api_key') ?: env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY');
         if ($geminiKey && !empty($selectedMatches)) {
             $studentContext = implode("\n", array_map(function ($m) {
-                return "- {$m['name']} (Skills: {$m['_skills']}, Interests: {$m['_interests']}, Completed Projects: {$m['_completed_projects']})";
+                $bioInfo = !empty($m['_bio']) ? " Bio: {$m['_bio']}" : '';
+                return "- {$m['name']} (Skills: {$m['_skills']}, Interests: {$m['_interests']}, Completed Projects: {$m['_completed_projects']}{$bioInfo})";
             }, $selectedMatches));
 
             $prompt = "Explain why this recommended team is optimal for the project '{$title}' requiring skills '{$requiredSkills}'. " .
-                "Highlight how their skills, interests, and completed projects complement each other and align with the project.\n" .
+                "Highlight how their skills, interests, completed projects, and personal bio/background complement each other and align with the project.\n" .
                 "Team Members:\n{$studentContext}";
 
             $models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
@@ -260,7 +264,62 @@ class TeamRecommendationController extends Controller
             return response()->json($payload, 201);
         }
 
-        return redirect()->route('team-recommendations.index', ['project_id' => 'p_' . $project->id])
+        return redirect()->route('team-recommendations.index', ['project_id' => $project->id])
             ->with('success', "Matched a team for '{$project->title}'!");
+    }
+
+    /**
+     * Get candidate students from registered User profiles and Student records.
+     */
+    private function getCandidates()
+    {
+        $candidates = collect();
+
+        // 1. Fetch real registered users with their profiles, skills, interests, and completed projects
+        $realUsers = \App\Models\User::with(['profile.skills', 'profile.interests', 'profile.studentProjects'])->get();
+
+        foreach ($realUsers as $u) {
+            $p = $u->profile;
+            $skillsStr = ($p && $p->skills && $p->skills->count() > 0)
+                ? $p->skills->pluck('name')->implode(', ')
+                : '';
+            $interestsStr = ($p && $p->interests && $p->interests->count() > 0)
+                ? $p->interests->pluck('name')->implode(', ')
+                : '';
+            $projectsStr = ($p && $p->studentProjects && $p->studentProjects->count() > 0)
+                ? $p->studentProjects->pluck('title')->implode(', ')
+                : '';
+            $dept = ($p && !empty($p->department)) ? $p->department : 'Computer Science';
+            $aboutMe = $p->about_me ?? '';
+            $bio = $p->bio ?? '';
+
+            $candidates->push((object)[
+                'id' => $u->id,
+                'name' => $u->name,
+                'department' => $dept,
+                'skills' => $skillsStr,
+                'interests' => $interestsStr,
+                'completed_projects' => $projectsStr,
+                'about_me' => $aboutMe,
+                'bio' => $bio,
+            ]);
+        }
+
+        // 2. Also check Student table for any dynamically registered student records
+        $dbStudents = Student::all();
+        foreach ($dbStudents as $s) {
+            if (!$candidates->contains('name', $s->name)) {
+                $candidates->push((object)[
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'department' => $s->department,
+                    'skills' => $s->skills,
+                    'interests' => $s->interests,
+                    'completed_projects' => $s->completed_projects,
+                ]);
+            }
+        }
+
+        return $candidates;
     }
 }

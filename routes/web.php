@@ -15,6 +15,7 @@ use App\Http\Controllers\Modules\Sayeefa\FileSharingController;
 use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
+use App\Http\Controllers\Modules\Fouzia\ResourceRequestController;
 
 Route::redirect('/', '/notes');
 
@@ -59,6 +60,27 @@ Route::controller(TutorFinderController::class)
         Route::post('/', 'store')->name('store');
         Route::post('/{tutor}/materials', 'uploadMaterial')->name('materials.store');
     });
+
+// Fouzia Feature 4 - Resource Request System
+// Public - no login required
+
+Route::controller(ResourceRequestController::class)
+    ->prefix('resource-requests')
+    ->name('resource-requests.')
+    ->group(function () {
+
+        Route::get('/', 'index')
+            ->name('index');
+
+        Route::post('/', 'store')
+            ->name('store');
+
+        Route::post(
+            '/{resourceRequest}/uploads',
+            'upload'
+        )->name('uploads.store');
+    });
+
 
 // Tuli Module - Web Routes
 Route::prefix('project-ideas')->name('project-ideas.')->group(function () {

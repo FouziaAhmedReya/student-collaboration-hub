@@ -102,36 +102,60 @@ Route::controller(BookMarketplaceController::class)
         )->name('destroy');
     });
 
-// Fouzia Feature 3 - Tutor Finder
-// No authentication required
+/*
+|--------------------------------------------------------------------------
+| Fouzia Feature 3 - Tutor Finder
+|--------------------------------------------------------------------------
+*/
 
-Route::controller(
-    TutorFinderController::class
-)
+Route::controller(TutorFinderController::class)
     ->prefix('tutors')
     ->name('tutors.')
     ->group(function () {
 
-        // Tutor Finder page
+        /*
+        | Tutor Finder Page
+        */
         Route::get(
             '/',
             'index'
         )->name('index');
 
 
-        // Create tutor
+        /*
+        | Add Tutor
+        */
         Route::post(
             '/',
             'store'
         )->name('store');
 
 
-        // Upload teaching material
+        /*
+        | Upload Tutor Teaching Material
+        */
         Route::post(
             '/{tutor}/materials',
             'uploadMaterial'
         )->name('materials.store');
 
+
+        /*
+        | Delete Tutor Teaching Material
+        */
+        Route::delete(
+            '/{tutor}/materials/{material}',
+            'destroyMaterial'
+        )->name('materials.destroy');
+
+
+        /*
+        | Delete Tutor Profile
+        */
+        Route::delete(
+            '/{tutor}',
+            'destroy'
+        )->name('destroy');
     });
 
 // Fouzia Feature 4 - Resource Request System

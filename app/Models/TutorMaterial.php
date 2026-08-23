@@ -9,19 +9,19 @@ class TutorMaterial extends Model
 {
     protected $fillable = [
         'tutor_id',
-
         'title',
-
         'file_name',
-
         'file_url',
-
         'cloudinary_public_id',
-
         'resource_type',
     ];
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tutor
+    |--------------------------------------------------------------------------
+    */
     public function tutor(): BelongsTo
     {
         return $this->belongsTo(

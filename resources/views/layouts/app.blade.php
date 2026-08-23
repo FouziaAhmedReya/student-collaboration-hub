@@ -168,6 +168,34 @@
                     Group Chat
                 </a>
 
+                {{-- Profile (Rayhan Module 1) --}}
+                <a
+                    href="{{ route('profile.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('profile.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Profile & Skills
+                </a>
+
+                {{-- Study Groups (Module 2) --}}
+                <a
+                    href="{{ route('groups.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('groups.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Study Groups
+                </a>
+
             </nav>
         </div>
     </header>

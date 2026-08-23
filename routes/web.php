@@ -7,7 +7,16 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Modules\Sayeefa\ProjectTaskController;
 use App\Http\Controllers\Modules\Sayeefa\GroupChatController;
 use App\Http\Controllers\Modules\Fouzia\BookMarketplaceController;
+use App\Http\Controllers\Modules\Rayhan\ProfileSkillController;
+use App\Http\Controllers\Modules\Rayhan\StudyGroupController;
+use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
+
 Route::redirect('/', '/notes');
+
+// Login fallback route for guest redirection / Breeze compatibility
+Route::get('/login', function () {
+    return redirect()->route('profile.index');
+})->name('login');
 
 // Fouzia Module - Notes
 Route::controller(NoteController::class)->prefix('notes')->name('notes.')->group(function () {
@@ -139,4 +148,58 @@ Route::prefix('api')->group(function () {
     Route::get('/chat-groups/{group}/meetings', [GroupChatController::class, 'apiMeetings']);
     Route::post('/chat-groups/{group}/meetings', [GroupChatController::class, 'storeMeeting']);
     Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
+});
+
+// Rayhan Module 1 - Student Profile & Skill Management
+Route::prefix('profile')->name('profile.')->group(function () {
+    Route::get('/', [ProfileSkillController::class, 'index'])->name('index');
+    Route::get('/edit', [ProfileSkillController::class, 'edit'])->name('edit');
+    Route::put('/', [ProfileSkillController::class, 'update'])->name('update');
+
+    // Skills
+    Route::post('/skills', [ProfileSkillController::class, 'storeSkill'])->name('skills.store');
+    Route::put('/skills/{skill}', [ProfileSkillController::class, 'updateSkill'])->name('skills.update');
+    Route::delete('/skills/{skill}', [ProfileSkillController::class, 'destroySkill'])->name('skills.destroy');
+
+    // Interests
+    Route::get('/interests/suggestions', [ProfileSkillController::class, 'interestSuggestions'])->name('interests.suggestions');
+    Route::post('/interests', [ProfileSkillController::class, 'storeInterest'])->name('interests.store');
+    Route::put('/interests/{interest}', [ProfileSkillController::class, 'updateInterest'])->name('interests.update');
+    Route::delete('/interests/{interest}', [ProfileSkillController::class, 'destroyInterest'])->name('interests.destroy');
+
+    // Student Completed Projects (student_projects table)
+    Route::post('/projects', [ProfileSkillController::class, 'storeProject'])->name('projects.store');
+    Route::put('/projects/{project}', [ProfileSkillController::class, 'updateProject'])->name('projects.update');
+    Route::delete('/projects/{project}', [ProfileSkillController::class, 'destroyProject'])->name('projects.destroy');
+
+    // Portfolio Links
+    Route::post('/portfolio-links', [ProfileSkillController::class, 'storePortfolioLink'])->name('portfolio-links.store');
+    Route::put('/portfolio-links/{link}', [ProfileSkillController::class, 'updatePortfolioLink'])->name('portfolio-links.update');
+    Route::delete('/portfolio-links/{link}', [ProfileSkillController::class, 'destroyPortfolioLink'])->name('portfolio-links.destroy');
+});
+
+// Direct alias for interest suggestions
+Route::get('/interests/suggestions', [ProfileSkillController::class, 'interestSuggestions'])->name('interests.suggestions.direct');
+
+// Module 2 - Study Group Management
+Route::middleware(['auth'])->group(function () {
+    Route::controller(StudyGroupController::class)->prefix('groups')->name('groups.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{group}/edit', 'edit')->name('edit');
+        Route::put('/{group}', 'update')->name('update');
+        Route::delete('/{group}', 'destroy')->name('destroy');
+        Route::post('/{group}/join', 'join')->name('join');
+        Route::post('/{group}/leave', 'leave')->name('leave');
+    });
+
+    // Module 2 - Study Group Members Management
+    Route::controller(StudyGroupMemberController::class)->prefix('groups/{group}/members')->name('groups.members.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/invite', 'invite')->name('invite');
+        Route::patch('/{member}/status', 'updateStatus')->name('updateStatus');
+        Route::patch('/{member}/role', 'updateRole')->name('updateRole');
+        Route::delete('/{member}', 'destroy')->name('destroy');
+    });
 });

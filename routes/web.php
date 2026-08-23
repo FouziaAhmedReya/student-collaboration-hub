@@ -13,6 +13,7 @@ use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
 use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
+use App\Http\Controllers\Modules\Fouzia\ResourceRequestController;
 
 
 
@@ -131,6 +132,26 @@ Route::controller(
             'uploadMaterial'
         )->name('materials.store');
 
+    });
+
+// Fouzia Feature 4 - Resource Request System
+// Public - no login required
+
+Route::controller(ResourceRequestController::class)
+    ->prefix('resource-requests')
+    ->name('resource-requests.')
+    ->group(function () {
+
+        Route::get('/', 'index')
+            ->name('index');
+
+        Route::post('/', 'store')
+            ->name('store');
+
+        Route::post(
+            '/{resourceRequest}/uploads',
+            'upload'
+        )->name('uploads.store');
     });
 
 

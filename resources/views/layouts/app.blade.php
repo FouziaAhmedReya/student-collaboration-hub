@@ -41,6 +41,7 @@
                 class="flex items-center gap-3"
                 aria-label="Student Collaboration Hub"
             >
+
                 <span class="grid size-10 place-items-center
                              rounded-xl bg-blue-600 text-white
                              shadow-sm shadow-blue-200">
@@ -53,6 +54,7 @@
                         stroke-width="1.8"
                         aria-hidden="true"
                     >
+
                         <path
                             d="m2.5 9 9.5-5 9.5 5-9.5 5-9.5-5Z"
                             stroke-linejoin="round"
@@ -63,8 +65,11 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         />
+
                     </svg>
+
                 </span>
+
 
                 <span class="leading-tight">
 
@@ -77,6 +82,7 @@
                     </span>
 
                 </span>
+
             </a>
 
 
@@ -132,6 +138,21 @@
                 </a>
 
 
+                {{-- Resource Requests --}}
+                <a
+                    href="{{ route('resource-requests.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('resource-requests.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Resource Requests
+                </a>
+
+
                 {{-- Project Ideas --}}
                 <a
                     href="{{ route('project-ideas.index') }}"
@@ -161,6 +182,7 @@
                     Team Matcher
                 </a>
 
+
                 {{-- Progress Dashboard --}}
                 <a
                     href="{{ route('progress-dashboard.index') }}"
@@ -175,6 +197,7 @@
                     Progress Dashboard
                 </a>
 
+
                 {{-- Events & Workshops --}}
                 <a
                     href="{{ route('events.index') }}"
@@ -188,6 +211,7 @@
                 >
                     Events & Workshops
                 </a>
+
 
                 {{-- Tasks --}}
                 <a
@@ -278,11 +302,13 @@
                     stroke-width="2"
                     aria-hidden="true"
                 >
+
                     <path
                         d="m5 12 4 4L19 6"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                     />
+
                 </svg>
 
 

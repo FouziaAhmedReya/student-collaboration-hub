@@ -10,6 +10,11 @@ use App\Http\Controllers\Modules\Fouzia\BookMarketplaceController;
 use App\Http\Controllers\Modules\Rayhan\ProfileSkillController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
+use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
+use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
+use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
+
+
 
 Route::redirect('/', '/notes');
 
@@ -96,8 +101,38 @@ Route::controller(BookMarketplaceController::class)
         )->name('destroy');
     });
 
-use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
-use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
+// Fouzia Feature 3 - Tutor Finder
+// No authentication required
+
+Route::controller(
+    TutorFinderController::class
+)
+    ->prefix('tutors')
+    ->name('tutors.')
+    ->group(function () {
+
+        // Tutor Finder page
+        Route::get(
+            '/',
+            'index'
+        )->name('index');
+
+
+        // Create tutor
+        Route::post(
+            '/',
+            'store'
+        )->name('store');
+
+
+        // Upload teaching material
+        Route::post(
+            '/{tutor}/materials',
+            'uploadMaterial'
+        )->name('materials.store');
+
+    });
+
 
 // Tuli Module - Web Routes
 Route::prefix('project-ideas')->name('project-ideas.')->group(function () {

@@ -67,6 +67,7 @@
                 </span>
 
                 <span class="leading-tight">
+
                     <span class="block text-sm font-bold text-blue-700">
                         Student
                     </span>
@@ -74,8 +75,10 @@
                     <span class="block text-xs font-medium text-slate-500">
                         Collaboration Hub
                     </span>
+
                 </span>
             </a>
+
 
             {{-- Navigation --}}
             <nav
@@ -98,6 +101,7 @@
                     Notes
                 </a>
 
+
                 {{-- Marketplace --}}
                 <a
                     href="{{ route('marketplace.index') }}"
@@ -112,6 +116,22 @@
                     Marketplace
                 </a>
 
+
+                {{-- Tutor Finder --}}
+                <a
+                    href="{{ route('tutors.index') }}"
+                    class="flex min-h-12 shrink-0 items-center
+                           border-b-2 px-3 text-sm font-medium
+                           lg:h-full
+
+                           {{ request()->routeIs('tutors.*')
+                               ? 'border-blue-600 font-semibold text-blue-700'
+                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                >
+                    Tutor Finder
+                </a>
+
+
                 {{-- Project Ideas --}}
                 <a
                     href="{{ route('project-ideas.index') }}"
@@ -125,6 +145,7 @@
                 >
                     Project Ideas
                 </a>
+
 
                 {{-- Team Matcher --}}
                 <a
@@ -182,6 +203,7 @@
                     Tasks
                 </a>
 
+
                 {{-- Group Chat --}}
                 <a
                     href="{{ route('group-chat.index') }}"
@@ -196,7 +218,8 @@
                     Group Chat
                 </a>
 
-                {{-- Profile (Rayhan Module 1) --}}
+
+                {{-- Profile & Skills --}}
                 <a
                     href="{{ route('profile.index') }}"
                     class="flex min-h-12 shrink-0 items-center
@@ -210,7 +233,8 @@
                     Profile & Skills
                 </a>
 
-                {{-- Study Groups (Module 2) --}}
+
+                {{-- Study Groups --}}
                 <a
                     href="{{ route('groups.index') }}"
                     class="flex min-h-12 shrink-0 items-center
@@ -225,21 +249,27 @@
                 </a>
 
             </nav>
+
         </div>
+
     </header>
+
 
     {{-- Main Content --}}
     <main class="mx-auto w-full max-w-7xl px-4
                  py-8 sm:px-6 lg:px-8 lg:py-10">
 
+
         {{-- Success Message --}}
         @if (session('success'))
+
             <div
                 class="mb-6 flex items-start gap-3 rounded-xl
                        border border-emerald-200 bg-emerald-50
                        px-4 py-3 text-sm text-emerald-900"
                 role="status"
             >
+
                 <svg
                     viewBox="0 0 24 24"
                     class="mt-0.5 size-5 shrink-0"
@@ -255,32 +285,46 @@
                     />
                 </svg>
 
+
                 <span>
                     {{ session('success') }}
                 </span>
+
             </div>
+
         @endif
+
 
         {{-- Validation and Other Errors --}}
         @if ($errors->any())
+
             <div
                 class="mb-6 rounded-xl border border-red-200
                        bg-red-50 px-4 py-3 text-sm text-red-800"
                 role="alert"
             >
+
                 <p class="mb-2 font-bold">
                     Please fix the following:
                 </p>
 
+
                 <ul class="list-inside list-disc space-y-1">
+
                     @foreach ($errors->all() as $error)
+
                         <li>
                             {{ $error }}
                         </li>
+
                     @endforeach
+
                 </ul>
+
             </div>
+
         @endif
+
 
         {{-- Page Content --}}
         @yield('content')

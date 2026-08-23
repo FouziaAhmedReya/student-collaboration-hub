@@ -313,26 +313,14 @@
             <div class="hub-card">
                 <h3 class="h6 fw-bold text-dark mb-3">Preferred Study Location</h3>
                 <div class="row align-items-center g-3">
-                    <!-- Google Map Column -->
+                    <!-- Leaflet / OpenFreeMap Map Column -->
                     <div class="col-12 col-md-6">
-                        <div class="rounded-3 overflow-hidden border" style="height: 220px; background: #e2e8f0; position: relative;">
-                            @if(env('GOOGLE_MAPS_API_KEY') && $profile->latitude && $profile->longitude)
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    style="border:0"
-                                    loading="lazy"
-                                    allowfullscreen
-                                    src="https://www.google.com/maps/embed/v1/place?key={{ env('GOOGLE_MAPS_API_KEY') }}&q={{ $profile->latitude }},{{ $profile->longitude }}">
-                                </iframe>
-                            @else
+                        <div id="profileDisplayMap" class="rounded-3 overflow-hidden border" style="height: 220px; background: #e2e8f0; position: relative;">
+                            @if(!$profile->latitude || !$profile->longitude)
                                 <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-3" style="background-color: #f1f5f9;">
                                     <i class="bi bi-geo-alt-fill text-danger fs-1 mb-2"></i>
                                     <h6 class="fw-bold text-dark mb-1">{{ $profile->preferred_location_name ?? 'BRAC University Library' }}</h6>
                                     <p class="small text-secondary mb-0">{{ $profile->preferred_location_address ?? 'Mohakhali, Dhaka 1212' }}</p>
-                                    @if(!env('GOOGLE_MAPS_API_KEY'))
-                                        <span class="badge bg-light text-secondary border mt-2">Map preview (API Key optional in .env)</span>
-                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -610,16 +598,25 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Address / Area</label>
-                    <input type="text" name="preferred_location_address" class="form-control" value="{{ $profile->preferred_location_address ?? 'Mohakhali, Dhaka 1212' }}" required>
+                    <div class="input-group">
+                        <input type="text" id="profile_location_address" name="preferred_location_address" class="form-control" value="{{ $profile->preferred_location_address ?? 'Mohakhali, Dhaka 1212' }}" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="searchProfilePlace()">Search Place</button>
+                    </div>
+                </div>
+
+                <!-- Interactive Map Picker inside Modal -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-muted">Click or drag marker to set exact location on map</label>
+                    <div id="profilePickerMap" class="rounded-3 border" style="height: 200px; width: 100%;"></div>
                 </div>
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="form-label fw-semibold">Latitude</label>
-                        <input type="number" step="any" name="latitude" class="form-control" value="{{ $profile->latitude ?? '23.7806' }}">
+                        <input type="number" step="any" id="profile_latitude" name="latitude" class="form-control" value="{{ $profile->latitude ?? '23.7806' }}">
                     </div>
                     <div class="col-6">
                         <label class="form-label fw-semibold">Longitude</label>
-                        <input type="number" step="any" name="longitude" class="form-control" value="{{ $profile->longitude ?? '90.4068' }}">
+                        <input type="number" step="any" id="profile_longitude" name="longitude" class="form-control" value="{{ $profile->longitude ?? '90.4068' }}">
                     </div>
                 </div>
             </div>
@@ -778,6 +775,56 @@
             });
         }
     })();
+
+    // Initialize Profile Display Map
+    document.addEventListener('DOMContentLoaded', function () {
+        @if($profile->latitude && $profile->longitude)
+            HubMap.initDisplayMap(
+                'profileDisplayMap',
+                {{ (float)$profile->latitude }},
+                {{ (float)$profile->longitude }},
+                "{{ addslashes($profile->preferred_location_name ?? 'Preferred Study Location') }}"
+            );
+        @endif
+    });
+
+    let profilePickerInstance = null;
+    const locModal = document.getElementById('changeLocationModal');
+    if (locModal) {
+        locModal.addEventListener('shown.bs.modal', function () {
+            if (!profilePickerInstance) {
+                profilePickerInstance = HubMap.initPickerMap({
+                    containerId: 'profilePickerMap',
+                    latInputId: 'profile_latitude',
+                    lngInputId: 'profile_longitude',
+                    addressInputId: 'profile_location_address',
+                    initialLat: {{ (float)($profile->latitude ?? 23.7806) }},
+                    initialLng: {{ (float)($profile->longitude ?? 90.4068) }}
+                });
+            } else {
+                profilePickerInstance.map.invalidateSize();
+            }
+        });
+    }
+
+    function searchProfilePlace() {
+        const query = document.getElementById('profile_location_address').value;
+        if (!query) return;
+
+        HubMap.searchNominatim(query, function (results) {
+            if (results && results.length > 0) {
+                const first = results[0];
+                const lat = parseFloat(first.lat);
+                const lng = parseFloat(first.lon);
+
+                if (profilePickerInstance) {
+                    profilePickerInstance.setLocation(lat, lng);
+                }
+            } else {
+                alert('No location found for this address query.');
+            }
+        });
+    }
 </script>
 @endpush
 

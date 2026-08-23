@@ -15,7 +15,7 @@ class ProfileController extends Controller
 
         $profile = $user->profile;
         if (!$profile) {
-            $profile = $user->profile()->create();
+            $profile = $user->profile()->create(['department' => '', 'semester' => '']);
             $user->load('profile');
             $profile = $user->profile;
         }
@@ -30,7 +30,7 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
         $user->load('profile');
-        $profile = $user->profile ?? $user->profile()->create();
+        $profile = $user->profile ?? $user->profile()->create(['department' => '', 'semester' => '']);
 
         return view('profile.edit', compact('user', 'profile'));
     }
@@ -50,9 +50,15 @@ class ProfileController extends Controller
         $user = auth()->user();
         $user->update(['name' => $request->name]);
 
-        $profile = $user->profile ?? $user->profile()->create();
+        $profile = $user->profile ?? $user->profile()->create(['department' => '', 'semester' => '']);
 
         $profileData = $request->only(['department', 'semester', 'university', 'joined_date', 'about_me']);
+
+        // The live MySQL schema has department and semester as NOT NULL (no default).
+        // Laravel's ConvertEmptyStringsToNull middleware turns empty inputs into null,
+        // which would violate the constraint. Coerce null → '' to satisfy the column.
+        $profileData['department'] = $profileData['department'] ?? '';
+        $profileData['semester']   = $profileData['semester']   ?? '';
 
         if ($request->hasFile('profile_photo')) {
             if ($profile->profile_photo) {
@@ -76,7 +82,7 @@ class ProfileController extends Controller
         ]);
 
         $user = auth()->user();
-        $profile = $user->profile ?? $user->profile()->create();
+        $profile = $user->profile ?? $user->profile()->create(['department' => '', 'semester' => '']);
 
         $profile->update($request->only([
             'preferred_location_name',

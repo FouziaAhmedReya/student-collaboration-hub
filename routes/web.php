@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Modules\Fouzia\NoteController;
-use App\Http\Controllers\Modules\Rayhan\ProjectTeamFinderController;
 use App\Http\Controllers\Modules\Tuli\ProjectIdeaGeneratorController;
 use App\Http\Controllers\Modules\Tuli\TeamRecommendationController;
 use Illuminate\Support\Facades\Route;
@@ -298,24 +297,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         return redirect()->route('notes.index');
     })->name('dashboard');
-});
-
-// Rayhan Module 3 Feature 2 - Project Team Finder
-Route::middleware(['auth'])->group(function () {
-    Route::controller(ProjectTeamFinderController::class)->group(function () {
-        Route::get('/projects', 'index')->name('projects.index');
-        Route::get('/projects/create', 'create')->name('projects.create');
-        Route::post('/projects/recruitment', 'store')->name('projects.recruitment.store');
-        Route::get('/projects/recruitment/{project}', 'show')->name('projects.show');
-        Route::get('/projects/recruitment/{project}/edit', 'edit')->name('projects.edit');
-        Route::put('/projects/recruitment/{project}', 'update')->name('projects.update_recruitment');
-        Route::delete('/projects/recruitment/{project}', 'destroy')->name('projects.destroy_recruitment');
-        // Project Join Request & Approval Endpoints
-        Route::post('/projects/recruitment/{project}/request', 'requestJoin')->name('projects.request');
-        Route::delete('/projects/recruitment/{project}/request', 'cancelRequest')->name('projects.cancelRequest');
-        Route::patch('/projects/recruitment/{project}/requests/{member}/approve', 'approveRequest')->name('projects.requests.approve');
-        Route::patch('/projects/recruitment/{project}/requests/{member}/reject', 'rejectRequest')->name('projects.requests.reject');
-    });
 });
 
 require __DIR__.'/auth.php';

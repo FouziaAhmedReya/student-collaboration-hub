@@ -154,8 +154,8 @@ class ProfileSkillController extends Controller
                 'about_me' => $aboutMe,
                 'preferred_location_name' => $validated['preferred_location_name'] ?? null,
                 'preferred_location_address' => $validated['preferred_location_address'] ?? null,
-                'latitude' => (isset($validated['latitude']) && $validated['latitude'] !== null) ? (float) $validated['latitude'] : ($validated['latitude'] ?? null),
-                'longitude' => (isset($validated['longitude']) && $validated['longitude'] !== null) ? (float) $validated['longitude'] : ($validated['longitude'] ?? null),
+                'latitude' => $validated['latitude'] !== null ? (float) $validated['latitude'] : null,
+                'longitude' => $validated['longitude'] !== null ? (float) $validated['longitude'] : null,
             ]);
         });
 

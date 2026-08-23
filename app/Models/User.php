@@ -63,22 +63,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(BookOrder::class, 'buyer_id');
     }
-
-    // Module 3 Feature 2 - Project Team Finder
-    public function createdProjectRecruitments(): HasMany
-    {
-        return $this->hasMany(ProjectRecruitment::class, 'creator_id');
-    }
-
-    public function projectTeamMemberships(): HasMany
-    {
-        return $this->hasMany(ProjectTeamMember::class, 'user_id');
-    }
-
-    public function joinedProjects(): BelongsToMany
-    {
-        return $this->belongsToMany(ProjectRecruitment::class, 'project_team_members', 'user_id', 'project_recruitment_id')
-            ->withPivot(['id', 'role', 'status', 'joined_at'])
-            ->withTimestamps();
-    }
 }

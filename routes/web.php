@@ -51,30 +51,98 @@ Route::controller(BookMarketplaceController::class)
         Route::delete('/{book}', 'destroy')->name('destroy');
     });
 
-// Fouzia Feature 3 - Tutor Finder
+
+/*
+|--------------------------------------------------------------------------
+| Fouzia Feature 3 - Tutor Finder
+|--------------------------------------------------------------------------
+| Public - no login required
+*/
+
 Route::controller(TutorFinderController::class)
     ->prefix('tutors')
     ->name('tutors.')
     ->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::post('/', 'store')->name('store');
-        Route::post('/{tutor}/materials', 'uploadMaterial')->name('materials.store');
+
+        /*
+        | Tutor Finder Page
+        */
+        Route::get(
+            '/',
+            'index'
+        )->name('index');
+
+
+        /*
+        | Add Tutor
+        */
+        Route::post(
+            '/',
+            'store'
+        )->name('store');
+
+
+        /*
+        | Upload Tutor Teaching Material
+        */
+        Route::post(
+            '/{tutor}/materials',
+            'uploadMaterial'
+        )->name('materials.store');
+
+
+        /*
+        | Delete Tutor Teaching Material
+        */
+        Route::delete(
+            '/{tutor}/materials/{material}',
+            'destroyMaterial'
+        )->name('materials.destroy');
+
+
+        /*
+        | Delete Tutor Profile
+        */
+        Route::delete(
+            '/{tutor}',
+            'destroy'
+        )->name('destroy');
     });
 
-// Fouzia Feature 4 - Resource Request System
-// Public - no login required
+
+/*
+|--------------------------------------------------------------------------
+| Fouzia Feature 4 - Resource Request System
+|--------------------------------------------------------------------------
+| Public - no login required
+*/
 
 Route::controller(ResourceRequestController::class)
     ->prefix('resource-requests')
     ->name('resource-requests.')
     ->group(function () {
 
-        Route::get('/', 'index')
-            ->name('index');
+        /*
+        | Resource Request Page
+        */
+        Route::get(
+            '/',
+            'index'
+        )->name('index');
 
-        Route::post('/', 'store')
-            ->name('store');
 
+        /*
+        | Create Resource Request
+        */
+        Route::post(
+            '/',
+            'store'
+        )->name('store');
+
+
+        /*
+        | Upload Resource for Request
+        */
         Route::post(
             '/{resourceRequest}/uploads',
             'upload'

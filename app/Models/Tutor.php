@@ -18,9 +18,26 @@ class Tutor extends Model
         'profile_image_url',
         'profile_image_public_id',
         'profile_image_resource_type',
+
+        'owner_token_hash',
     ];
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Hide Ownership Information
+    |--------------------------------------------------------------------------
+    */
+    protected $hidden = [
+        'owner_token_hash',
+    ];
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Casts
+    |--------------------------------------------------------------------------
+    */
     protected function casts(): array
     {
         return [
@@ -29,6 +46,11 @@ class Tutor extends Model
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tutor Teaching Materials
+    |--------------------------------------------------------------------------
+    */
     public function materials(): HasMany
     {
         return $this->hasMany(

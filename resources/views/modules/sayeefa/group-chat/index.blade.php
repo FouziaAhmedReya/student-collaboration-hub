@@ -39,16 +39,34 @@
             <div class="lg:col-span-2">
                 <div class="flex h-[520px] flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div class="border-b border-slate-100 px-5 py-3">
-                        <h2 class="text-sm font-semibold text-slate-900">{{ $activeGroup->name }}</h2>
+                        <h2 class="mb-2 text-sm font-semibold text-slate-900">{{ $activeGroup->name }}</h2>
+                        <div class="relative">
+                            <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="m21 21-4.3-4.3" stroke-linecap="round" />
+                            </svg>
+                            <input type="text" id="chat-search" placeholder="Search messages or sender..."
+                                class="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <button type="button" id="chat-search-clear"
+                                class="absolute right-2.5 top-1/2 hidden -translate-y-1/2 text-xs font-medium text-slate-400 hover:text-slate-600">
+                                Clear
+                            </button>
+                        </div>
+                        <p id="chat-search-status" class="mt-1 hidden text-xs text-slate-400"></p>
                     </div>
+
                     <div id="message-list" class="flex-1 space-y-3 overflow-y-auto px-5 py-4">
                         @foreach ($activeGroup->messages as $message)
-                            <div class="max-w-[80%] rounded-lg bg-slate-50 px-3 py-2">
+                            <div class="chat-message max-w-[80%] rounded-lg bg-slate-50 px-3 py-2"
+                                data-sender="{{ strtolower($message->sender_name) }}"
+                                data-text="{{ strtolower($message->message) }}">
                                 <p class="text-xs font-medium text-slate-500">{{ $message->sender_name }}</p>
                                 <p class="text-sm text-slate-800">{{ $message->message }}</p>
                             </div>
                         @endforeach
+                        <p id="chat-search-empty" class="hidden py-6 text-center text-sm text-slate-400">No messages match your search.</p>
                     </div>
+
                     <form id="message-form" data-group-id="{{ $activeGroup->id }}" class="flex gap-2 border-t border-slate-100 p-3">
                         <input type="text" name="sender_name" placeholder="Your name" required
                             class="w-28 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -102,56 +120,95 @@
             </div>
         @endif
     </div>
+
     <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const headers = {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken,
-        'Accept': 'application/json',
-    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        };
 
-    document.getElementById('group-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const payload = Object.fromEntries(new FormData(event.target).entries());
-        const response = await fetch('/api/chat-groups', { method: 'POST', headers, body: JSON.stringify(payload) });
-        if (response.ok) {
-            const group = await response.json();
-            window.location.href = `{{ route('group-chat.index') }}?group_id=${group.id}`;
-        } else {
-            const errorBody = await response.text();
-            alert('Could not create group (status ' + response.status + '):\n' + errorBody);
-            console.error('Create group failed', response.status, errorBody);
-        }
-    });
+        // Live search logic
+        const chatSearchInput = document.getElementById('chat-search');
+        const chatSearchClear = document.getElementById('chat-search-clear');
+        const chatSearchStatus = document.getElementById('chat-search-status');
+        const chatSearchEmpty = document.getElementById('chat-search-empty');
+        const chatMessages = document.querySelectorAll('.chat-message');
 
-    document.getElementById('message-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.target;
-        const groupId = form.dataset.groupId;
-        const payload = Object.fromEntries(new FormData(form).entries());
-        const response = await fetch(`/api/chat-groups/${groupId}/messages`, { method: 'POST', headers, body: JSON.stringify(payload) });
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            const errorBody = await response.text();
-            alert('Could not send message (status ' + response.status + '):\n' + errorBody);
-            console.error('Send message failed', response.status, errorBody);
-        }
-    });
+        function filterMessages() {
+            const query = chatSearchInput.value.trim().toLowerCase();
+            chatSearchClear.classList.toggle('hidden', query === '');
 
-    document.getElementById('meeting-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.target;
-        const groupId = form.dataset.groupId;
-        const payload = Object.fromEntries(new FormData(form).entries());
-        const response = await fetch(`/api/chat-groups/${groupId}/meetings`, { method: 'POST', headers, body: JSON.stringify(payload) });
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            alert('Could not add meeting.');
+            if (query === '') {
+                chatMessages.forEach((el) => el.classList.remove('hidden'));
+                chatSearchStatus.classList.add('hidden');
+                chatSearchEmpty.classList.add('hidden');
+                return;
+            }
+
+            let matchCount = 0;
+            chatMessages.forEach((el) => {
+                const matches = el.dataset.sender.includes(query) || el.dataset.text.includes(query);
+                el.classList.toggle('hidden', !matches);
+                if (matches) matchCount++;
+            });
+
+            chatSearchStatus.textContent = `${matchCount} message${matchCount === 1 ? '' : 's'} found`;
+            chatSearchStatus.classList.remove('hidden');
+            chatSearchEmpty.classList.toggle('hidden', matchCount !== 0);
         }
+
+        chatSearchInput?.addEventListener('input', filterMessages);
+        chatSearchClear?.addEventListener('click', () => {
+            chatSearchInput.value = '';
+            filterMessages();
+            chatSearchInput.focus();
+        });
+
+        // Form submit handlers
+        document.getElementById('group-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = Object.fromEntries(new FormData(event.target).entries());
+            const response = await fetch('/api/chat-groups', { method: 'POST', headers, body: JSON.stringify(payload) });
+            if (response.ok) {
+                const group = await response.json();
+                window.location.href = `{{ route('group-chat.index') }}?group_id=${group.id}`;
+            } else {
+                const errorBody = await response.text();
+                alert('Could not create group (status ' + response.status + '):\n' + errorBody);
+                console.error('Create group failed', response.status, errorBody);
+            }
+        });
+
+        document.getElementById('message-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const groupId = form.dataset.groupId;
+            const payload = Object.fromEntries(new FormData(form).entries());
+            const response = await fetch(`/api/chat-groups/${groupId}/messages`, { method: 'POST', headers, body: JSON.stringify(payload) });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const errorBody = await response.text();
+                alert('Could not send message (status ' + response.status + '):\n' + errorBody);
+                console.error('Send message failed', response.status, errorBody);
+            }
+        });
+
+        document.getElementById('meeting-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const groupId = form.dataset.groupId;
+            const payload = Object.fromEntries(new FormData(form).entries());
+            const response = await fetch(`/api/chat-groups/${groupId}/meetings`, { method: 'POST', headers, body: JSON.stringify(payload) });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Could not add meeting.');
+            }
+        });
     });
-});
-</script>
+    </script>
 @endsection

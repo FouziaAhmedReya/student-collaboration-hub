@@ -184,7 +184,61 @@ class JwtAuthController extends Controller
         $projectsStr = ($profile && $profile->studentProjects) ? $profile->studentProjects->pluck('title')->implode(', ') : '';
         $portfolioStr = ($profile && $profile->portfolioLinks) ? $profile->portfolioLinks->pluck('url')->implode(', ') : '';
 
-        return view('modules.tuli.auth.profile', compact('user', 'profile', 'skillsStr', 'interestsStr', 'projectsStr', 'portfolioStr'));
+        // On-Demand Gemini AI Event Recommendations for Profile
+        $aiEventRecommendations = null;
+        $recommendEvents = $request->boolean('recommend_events') || $request->query('recommend_events') == '1';
+        $geminiKey = config('services.gemini.api_key') ?: env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY');
+
+        if ($recommendEvents && $geminiKey) {
+            $allEvents = \App\Models\Event::orderBy('event_date', 'asc')->get();
+            if ($allEvents->count() > 0) {
+                $skillsText = !empty($skillsStr) ? $skillsStr : 'Python, Web Development';
+                $interestsText = !empty($interestsStr) ? $interestsStr : 'Artificial Intelligence, Hackathons';
+                $deptText = ($profile && !empty($profile->department)) ? $profile->department : 'Computer Science';
+                $bioText = ($profile && (!empty($profile->bio) || !empty($profile->about_me))) ? " Bio: " . trim(($profile->about_me ?? '') . ' ' . ($profile->bio ?? '')) : '';
+
+                $studentContext = "Student Name: {$user->name}\nDepartment: {$deptText}\nSkills: {$skillsText}\nInterests: {$interestsText}{$bioText}";
+
+                $eventRoster = implode("\n\n", $allEvents->map(function ($e) {
+                    $dateStr = $e->event_date ? $e->event_date->format('M d, Y @ h:i A') : 'TBA';
+                    return "Event ID: {$e->id}\nTitle: {$e->title}\nType: {$e->type}\nTarget Skills: {$e->target_skills}\nDate & Location: {$dateStr} | {$e->location}\nDescription: {$e->description}";
+                })->toArray());
+
+                $prompt = "You are an AI Academic Career & Event Advisor. Evaluate the following upcoming events, workshops, seminars, and hackathons for this student:\n\n" .
+                    "{$studentContext}\n\n" .
+                    "Upcoming Events:\n{$eventRoster}\n\n" .
+                    "Provide clean, humanized, minimal markdown recommendations:\n" .
+                    "# 🚀 Top Recommended Events for Your Profile\n" .
+                    "## 1. Primary Recommended Workshop / Event\n" .
+                    "- Explain in 1-2 friendly sentences why this event fits their skills.\n" .
+                    "## 2. Recommended Hackathon / Seminar\n" .
+                    "- Explain the learning benefits.\n\n" .
+                    "Return ONLY clean, minimal markdown.";
+
+                $models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+                foreach ($models as $model) {
+                    try {
+                        $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                            ->timeout(8)
+                            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$geminiKey}", [
+                                'contents' => [['parts' => [['text' => $prompt]]]]
+                            ]);
+
+                        if ($response->successful()) {
+                            $text = trim($response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '');
+                            if (!empty($text)) {
+                                $aiEventRecommendations = $text;
+                                break;
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        // Failover
+                    }
+                }
+            }
+        }
+
+        return view('modules.tuli.auth.profile', compact('user', 'profile', 'skillsStr', 'interestsStr', 'projectsStr', 'portfolioStr', 'aiEventRecommendations'));
     }
 
     /**

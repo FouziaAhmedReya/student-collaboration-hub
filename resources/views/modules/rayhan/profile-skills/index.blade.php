@@ -3,7 +3,7 @@
 @section('title', 'Student Profile & Skill Management')
 
 @section('content')
-<div class="space-y-8">
+<div class="space-y-5">
 
     {{-- Profile Header Card --}}
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">

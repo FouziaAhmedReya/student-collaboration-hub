@@ -247,22 +247,22 @@
             <div class="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-3">
                 @if($currentUser)
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('profile.edit') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors" title="Edit Profile">
+                        <a href="{{ route('profile.index') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors" title="View Profile">
                             <span class="size-2 rounded-full bg-emerald-500"></span>
-                            <span>{{ Str::limit($currentUser->name, 16) }}</span>
+                            {{ $currentUser->name }}
                         </a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
-                            <button type="submit" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
+                            <button type="submit" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                                 Logout
                             </button>
                         </form>
                     </div>
                 @else
-                    <a href="{{ route('login') }}" class="rounded-xl border border-slate-300 px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                    <a href="{{ route('login') }}" class="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         Log In
                     </a>
-                    <a href="{{ route('register') }}" class="rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">
+                    <a href="{{ route('register') }}" class="rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors">
                         Register
                     </a>
                 @endif

@@ -77,9 +77,12 @@ class TeamRecommendationController extends Controller
                 return $b['match_percent'] <=> $a['match_percent'];
             });
 
-            // AI Analysis if GOOGLE_API_KEY or GEMINI_API_KEY present
+            // Gemini AI Teammate Match Recommendations (On-Demand when generate_ai=1)
+            $aiAnalysis = null;
+            $generateAi = $request->boolean('generate_ai') || $request->query('generate_ai') == '1';
             $geminiKey = config('services.gemini.api_key') ?: env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY');
-            if ($geminiKey) {
+
+            if ($generateAi && $geminiKey) {
                 $topMatches = array_filter($recommendedTeammates, fn($s) => $s['match_percent'] > 0);
                 if (empty($topMatches)) {
                     $topMatches = array_slice($recommendedTeammates, 0, 3);
@@ -90,12 +93,18 @@ class TeamRecommendationController extends Controller
                 if (!empty($topMatches)) {
                     $studentContext = implode("\n", array_map(function ($s) {
                         $bioInfo = !empty($s['bio']) ? " Bio: {$s['bio']}" : '';
-                        return "- {$s['name']} (Dept: {$s['department']}, Skills: {$s['skills']}, Interests: {$s['_interests']}, Completed Projects: {$s['_completed_projects']}{$bioInfo})";
+                        return "- {$s['name']} ({$s['match_percent']}% Match, Dept: {$s['department']}, Skills: {$s['skills']}, Interests: {$s['_interests']}{$bioInfo})";
                     }, $topMatches));
 
-                    $prompt = "Explain why the following students are recommended for the project '{$project->title}' " .
-                        "requiring skills '{$project->required_skills}'. Highlight how their technical skills, interests, completed projects, and personal bio/background align.\n" .
-                        "Recommended Students:\n{$studentContext}";
+                    $prompt = "You are an AI Academic Team Matcher Advisor. Provide a humanized, minimal, clear, and easily understandable team recommendation for the project '{$project->title}' requiring skills '{$project->required_skills}':\n\n" .
+                        "Candidates Roster:\n{$studentContext}\n\n" .
+                        "Structure your response with clear, simple headings and short bullet points:\n" .
+                        "# 🤝 Teammate Match Analysis for {$project->title}\n" .
+                        "## 1. Primary Teammate Recommendation\n" .
+                        "- Explain in 1-2 friendly sentences why their background and technical skills fit the project.\n" .
+                        "## 2. Complementary Skills Fit\n" .
+                        "- Highlight key team strengths and skill synergy.\n\n" .
+                        "Return ONLY clean, humanized, minimal markdown.";
 
                     $models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
                     foreach ($models as $model) {
@@ -308,18 +317,19 @@ class TeamRecommendationController extends Controller
         // 2. Also check Student table for any dynamically registered student records
         $dbStudents = Student::all();
         foreach ($dbStudents as $s) {
-            if (!$candidates->contains('name', $s->name)) {
-                $candidates->push((object)[
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'department' => $s->department,
-                    'skills' => $s->skills,
-                    'interests' => $s->interests,
-                    'completed_projects' => $s->completed_projects,
-                ]);
-            }
+            $candidates->push((object)[
+                'id' => $s->id,
+                'name' => $s->name,
+                'department' => $s->department,
+                'skills' => $s->skills,
+                'interests' => $s->interests,
+                'completed_projects' => $s->completed_projects,
+            ]);
         }
 
-        return $candidates;
+        // Return unique candidate students (no duplicate names)
+        return $candidates->unique(function ($item) {
+            return strtolower(trim($item->name));
+        })->values();
     }
 }

@@ -174,6 +174,8 @@ Route::prefix('events')->name('events.')->group(function () {
     Route::delete('/{event}', [EventAnnouncementController::class, 'destroy'])->name('destroy');
 });
 
+use App\Http\Controllers\Modules\Tuli\JwtAuthController;
+
 // Tuli Module - API Endpoints
 Route::prefix('api')->group(function () {
     Route::get('/ideas', [ProjectIdeaGeneratorController::class, 'index']);
@@ -187,6 +189,12 @@ Route::prefix('api')->group(function () {
     Route::post('/events', [EventAnnouncementController::class, 'store']);
     Route::put('/events/{event}', [EventAnnouncementController::class, 'update']);
     Route::delete('/events/{event}', [EventAnnouncementController::class, 'destroy']);
+    // JWT Auth API Endpoints
+    Route::post('/auth/login', [JwtAuthController::class, 'login']);
+    Route::post('/auth/register', [JwtAuthController::class, 'register']);
+    Route::get('/auth/user', [JwtAuthController::class, 'me']);
+    Route::put('/auth/profile', [JwtAuthController::class, 'updateProfile']);
+    Route::post('/auth/logout', [JwtAuthController::class, 'logout']);
 });
 
 // Sayeefa Module - Project Task Management (Web)

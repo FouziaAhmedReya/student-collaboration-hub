@@ -91,222 +91,182 @@
 
 
             {{-- Navigation --}}
+            @php
+                $currentUser = \App\Services\Tuli\JwtService::getUserFromRequest(request()) ?: auth()->user();
+            @endphp
+
             <nav
                 aria-label="Main navigation"
-                class="flex items-center gap-1 overflow-x-auto
-                       sm:gap-2 lg:h-16"
+                class="flex flex-wrap items-center gap-x-1 gap-y-1 py-2 text-xs sm:text-sm font-medium lg:h-16 lg:py-0"
             >
-
                 {{-- Notes --}}
                 <a
                     href="{{ route('notes.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('notes.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Notes
                 </a>
 
-
                 {{-- Marketplace --}}
                 <a
                     href="{{ route('marketplace.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('marketplace.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Marketplace
                 </a>
 
-
                 {{-- Tutor Finder --}}
                 <a
                     href="{{ route('tutors.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('tutors.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
-                    Tutor Finder
+                    Tutors
                 </a>
-
 
                 {{-- Resource Requests --}}
                 <a
                     href="{{ route('resource-requests.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('resource-requests.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
-                    Resource Requests
+                    Requests
                 </a>
-
 
                 {{-- Project Ideas --}}
                 <a
                     href="{{ route('project-ideas.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('project-ideas.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Project Ideas
                 </a>
 
-
                 {{-- Team Matcher --}}
                 <a
                     href="{{ route('team-recommendations.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('team-recommendations.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Team Matcher
                 </a>
 
-
                 {{-- Progress Dashboard --}}
                 <a
                     href="{{ route('progress-dashboard.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('progress-dashboard.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
-                    Progress Dashboard
+                    Dashboard
                 </a>
-
 
                 {{-- Events & Workshops --}}
                 <a
                     href="{{ route('events.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('events.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Events & Workshops
                 </a>
 
-
                 {{-- Tasks --}}
                 <a
                     href="{{ route('tasks.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('tasks.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Tasks
                 </a>
 
-
                 {{-- Group Chat --}}
                 <a
                     href="{{ route('group-chat.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('group-chat.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Group Chat
                 </a>
 
-
-                {{-- Meeting Scheduler --}}
+                {{-- Meetings --}}
                 <a
                     href="{{ route('meetings.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('meetings.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Meetings
                 </a>
 
-
-                {{-- File Sharing --}}
+                {{-- Files --}}
                 <a
                     href="{{ route('files.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('files.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Files
                 </a>
 
-
-                {{-- Profile & Skills --}}
-                <a
-                    href="{{ route('profile.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
-                           {{ request()->routeIs('profile.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
-                >
-                    Profile & Skills
-                </a>
-
-
                 {{-- Study Groups --}}
                 <a
                     href="{{ route('groups.index') }}"
-                    class="flex min-h-12 shrink-0 items-center
-                           border-b-2 px-3 text-sm font-medium
-                           lg:h-full
-
+                    class="rounded-lg px-2.5 py-1.5 border-b-2 transition-colors
                            {{ request()->routeIs('groups.*')
-                               ? 'border-blue-600 font-semibold text-blue-700'
-                               : 'border-transparent text-slate-600 hover:text-slate-900' }}"
+                               ? 'border-blue-600 font-bold text-blue-700 bg-blue-50/50'
+                               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}"
                 >
                     Study Groups
                 </a>
-
             </nav>
+
+            {{-- Auth Section --}}
+            <div class="flex items-center gap-2 shrink-0 border-l border-slate-200 pl-3">
+                @if($currentUser)
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('profile.edit') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors" title="Edit Profile">
+                            <span class="size-2 rounded-full bg-emerald-500"></span>
+                            <span>{{ Str::limit($currentUser->name, 16) }}</span>
+                        </a>
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <a href="{{ route('login') }}" class="rounded-xl border border-slate-300 px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                        Log In
+                    </a>
+                    <a href="{{ route('register') }}" class="rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">
+                        Register
+                    </a>
+                @endif
+            </div>
 
         </div>
 

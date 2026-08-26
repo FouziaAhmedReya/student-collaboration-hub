@@ -82,6 +82,102 @@
         </div>
     </div>
 
+    {{-- Gemini AI Personalized Event Recommendations for Student Profile --}}
+    @if(isset($aiEventRecommendations) && $aiEventRecommendations)
+        <div class="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-blue-50/80 to-slate-50 p-6 text-slate-900 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-indigo-200/50 pb-3">
+                <div class="flex items-center gap-2 text-indigo-800 font-bold text-base">
+                    <svg class="size-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                    </svg>
+                    <span>Gemini AI Recommended Events & Workshops for {{ $user->name }}</span>
+                </div>
+                <a href="{{ route('profile.index', ['recommend_events' => 1]) }}" class="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">
+                    Refresh Recommendations
+                </a>
+            </div>
+            <div id="aiEventMainProfileContent" class="text-sm text-slate-700 leading-relaxed"></div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const rawText = @json($aiEventRecommendations);
+                const container = document.getElementById('aiEventMainProfileContent');
+                if (rawText && container) {
+                    let text = rawText
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+
+                    let lines = text.split('\n');
+                    let html = '';
+                    let inList = false;
+
+                    lines.forEach(line => {
+                        let trimmed = line.trim();
+                        if (!trimmed) return;
+
+                        if (trimmed.startsWith('# ')) {
+                            if (inList) { html += '</ul>'; inList = false; }
+                            let title = trimmed.replace(/^#\s*/, '');
+                            html += `<div class="mt-3 mb-2"><h3 class="text-base font-extrabold text-indigo-950">${title}</h3></div>`;
+                            return;
+                        }
+
+                        if (trimmed.startsWith('## ')) {
+                            if (inList) { html += '</ul>'; inList = false; }
+                            let title = trimmed.replace(/^##\s*/, '');
+                            html += `
+                                <div class="mt-3 mb-2">
+                                    <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold shadow-sm uppercase tracking-wider" style="background-color: #2563eb !important; color: #ffffff !important;">
+                                        ${title}
+                                    </span>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+                            if (!inList) { html += '<ul class="space-y-2 my-2 pl-1">'; inList = true; }
+                            let itemContent = trimmed.replace(/^[\*\-\•]\s*/, '');
+                            itemContent = itemContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+                            html += `
+                                <li class="flex items-start gap-2 text-sm text-slate-700">
+                                    <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue-600"></span>
+                                    <span>${itemContent}</span>
+                                </li>
+                            `;
+                            return;
+                        }
+
+                        if (inList) { html += '</ul>'; inList = false; }
+
+                        let paragraphText = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+                        html += `<p class="my-2 text-sm leading-relaxed text-slate-700">${paragraphText}</p>`;
+                    });
+
+                    if (inList) { html += '</ul>'; }
+                    container.innerHTML = html;
+                }
+            });
+        </script>
+    @else
+        <!-- AI Event Recommendations CTA Box -->
+        <div class="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-blue-50/70 to-slate-50 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 text-indigo-800 font-bold text-base">
+                    <svg class="size-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                    </svg>
+                    <span>Gemini AI Event & Workshop Recommendations</span>
+                </div>
+                <p class="text-xs text-slate-600">Click below to generate personalized AI event & workshop recommendations tailored to your registered skills and interests.</p>
+            </div>
+            <a href="{{ route('profile.index', ['recommend_events' => 1]) }}" onclick="this.innerHTML='Generating Recommendations...'; this.classList.add('opacity-75', 'pointer-events-none');" class="shrink-0 inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">
+                <span style="color: #ffffff !important;">View AI Recommended Events for Me</span>
+            </a>
+        </div>
+    @endif
+
     {{-- Profile Completion Percentage Widget --}}
     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

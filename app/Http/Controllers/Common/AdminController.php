@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Common;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Report;
 
 
 class AdminController extends Controller
@@ -99,6 +100,71 @@ class AdminController extends Controller
         );
 
     }
+public function reports()
+{
 
+    $reports = Report::with([
+        'reporter',
+        'reportedUser'
+    ])
+    ->orderBy(
+        'created_at',
+        'desc'
+    )
+    ->get();
+
+
+    return view(
+        'common.admin.reports',
+        compact('reports')
+    );
+
+}
+
+
+
+
+
+public function resolveReport($id)
+{
+
+    $report = Report::findOrFail($id);
+
+
+    $report->status = 'resolved';
+
+
+    $report->save();
+
+
+    return back()->with(
+        'success',
+        'Report marked as resolved.'
+    );
+
+}
+
+
+
+
+
+public function rejectReport($id)
+{
+
+    $report = Report::findOrFail($id);
+
+
+    $report->status = 'rejected';
+
+
+    $report->save();
+
+
+    return back()->with(
+        'success',
+        'Report rejected.'
+    );
+
+}
 
 }

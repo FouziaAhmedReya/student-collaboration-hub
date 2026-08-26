@@ -9,9 +9,6 @@ use App\Models\User;
 class AdminController extends Controller
 {
 
-    /**
-     * Admin Dashboard
-     */
     public function dashboard()
     {
 
@@ -31,15 +28,77 @@ class AdminController extends Controller
 
 
 
+        $pendingTutors = User::where(
+            'role',
+            'tutor'
+        )
+        ->where(
+            'status',
+            'pending'
+        )
+        ->get();
+
+
+
         return view(
             'common.admin.dashboard',
             compact(
                 'totalUsers',
                 'totalStudents',
-                'totalTutors'
+                'totalTutors',
+                'pendingTutors'
             )
         );
 
     }
+
+
+
+
+
+    public function approveTutor($id)
+    {
+
+        $user = User::findOrFail($id);
+
+
+        $user->status = 'approved';
+
+
+        $user->save();
+
+
+
+        return back()->with(
+            'success',
+            'Tutor approved successfully.'
+        );
+
+    }
+
+
+
+
+
+    public function rejectTutor($id)
+    {
+
+        $user = User::findOrFail($id);
+
+
+        $user->status = 'rejected';
+
+
+        $user->save();
+
+
+
+        return back()->with(
+            'success',
+            'Tutor rejected successfully.'
+        );
+
+    }
+
 
 }

@@ -276,6 +276,13 @@ class JwtAuthController extends Controller
 
             'role'=>$validated['role'],
 
+            'status'=>$validated['role'] === 'tutor'
+                ? 'pending'
+                : 'approved',
+           
+
+
+
 
             'student_id'=>$validated['student_id'] ?? null,
 
@@ -466,7 +473,15 @@ class JwtAuthController extends Controller
 
                 'success',
 
-                "Registration successful! Welcome, {$user->name}."
+                $user->role === 'tutor'
+                    ? "Registration submitted! Your tutor account is waiting for admin approval."
+                    : "Registration successful! Welcome, {$user->name}."
+
+
+
+                
+
+               
 
             )
 

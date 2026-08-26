@@ -311,6 +311,18 @@ Route::middleware(['auth'])->group(function () {
 require __DIR__.'/auth.php';
 
 Route::middleware(['auth','admin'])->group(function () {
+    Route::post(
+    '/admin/tutor/{id}/approve',
+    [AdminController::class,'approveTutor']
+    )
+    ->name('admin.tutor.approve');
+
+
+    Route::post(
+    '/admin/tutor/{id}/reject',
+    [AdminController::class,'rejectTutor']
+    )
+    ->name('admin.tutor.reject');
 
 
     Route::get(

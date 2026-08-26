@@ -16,6 +16,7 @@ use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
 use App\Http\Controllers\Modules\Fouzia\ResourceRequestController;
+use App\Http\Controllers\Common\AdminController;
 
 Route::redirect('/', '/notes');
 
@@ -308,3 +309,15 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::middleware(['auth','admin'])->group(function () {
+
+
+    Route::get(
+        '/admin/dashboard',
+        [AdminController::class, 'dashboard']
+    )
+    ->name('admin.dashboard');
+
+
+});

@@ -17,6 +17,7 @@ use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
 use App\Http\Controllers\Modules\Fouzia\ResourceRequestController;
 use App\Http\Controllers\Common\AdminController;
+use App\Http\Controllers\ReportController;
 
 Route::redirect('/', '/notes');
 
@@ -311,6 +312,27 @@ Route::middleware(['auth'])->group(function () {
 require __DIR__.'/auth.php';
 
 Route::middleware(['auth','admin'])->group(function () {
+    Route::get(
+    '/admin/reports',
+    [AdminController::class,'reports']
+    )
+    ->name('admin.reports');
+
+
+
+    Route::post(
+    '/admin/report/{id}/resolve',
+    [AdminController::class,'resolveReport']
+    )
+    ->name('admin.report.resolve');
+
+
+
+    Route::post(
+    '/admin/report/{id}/reject',
+    [AdminController::class,'rejectReport']
+    )
+    ->name('admin.report.reject');
     Route::post(
     '/admin/tutor/{id}/approve',
     [AdminController::class,'approveTutor']
@@ -330,6 +352,25 @@ Route::middleware(['auth','admin'])->group(function () {
         [AdminController::class, 'dashboard']
     )
     ->name('admin.dashboard');
+
+
+});
+Route::middleware('auth')->group(function () {
+
+
+    Route::get(
+        '/report/{user}',
+        [ReportController::class,'create']
+    )
+    ->name('report.create');
+
+
+
+    Route::post(
+        '/report',
+        [ReportController::class,'store']
+    )
+    ->name('report.store');
 
 
 });

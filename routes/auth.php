@@ -11,16 +11,20 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Modules\Tuli\JwtAuthController;
+
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
+    Route::get('register', [JwtAuthController::class, 'showRegisterForm'])
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [JwtAuthController::class, 'register'])
+        ->name('register.store');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    Route::get('login', [JwtAuthController::class, 'showLoginForm'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [JwtAuthController::class, 'login'])
+        ->name('login.store');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -36,6 +40,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('jwt/profile', [JwtAuthController::class, 'showProfileForm'])
+        ->name('jwt.profile');
+
+    Route::put('jwt/profile', [JwtAuthController::class, 'updateProfile'])
+        ->name('jwt.profile.update');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
@@ -54,6 +64,6 @@ Route::middleware('auth')->group(function () {
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    Route::post('logout', [JwtAuthController::class, 'logout'])
         ->name('logout');
 });

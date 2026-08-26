@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Modules\Tuli;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Tuli\JwtService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -33,17 +34,28 @@ class EventAnnouncementController extends Controller
         $geminiKey = config('services.gemini.api_key') ?: env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY');
 
         if ($generateAi && $geminiKey && $allEvents->count() > 0) {
-            // Fetch student profile skills & interests if available
-            $studentContext = "Student Department: Computer Science & Engineering\n" .
-                "Skills: Python, React, Web Development, Machine Learning\n" .
-                "Interests: Artificial Intelligence, Fullstack Web Apps, Hackathons";
+            // Fetch JWT authenticated user or first registered student profile dynamically
+            $user = JwtService::getUserFromRequest($request) ?: User::with(['profile.skills', 'profile.interests', 'profile.studentProjects'])->first();
 
-            $user = User::with(['profile.skills', 'profile.interests'])->first();
-            if ($user && $user->profile) {
+            $studentContext = "";
+            if ($user) {
+                if (!$user->relationLoaded('profile')) {
+                    $user->load(['profile.skills', 'profile.interests', 'profile.studentProjects']);
+                }
                 $p = $user->profile;
-                $skillsStr = ($p->skills && $p->skills->count() > 0) ? $p->skills->pluck('name')->implode(', ') : 'Python, React';
-                $interestsStr = ($p->interests && $p->interests->count() > 0) ? $p->interests->pluck('name')->implode(', ') : 'AI, Web Development';
-                $studentContext = "Student Name: {$user->name}\nDepartment: " . ($p->department ?? 'Computer Science') . "\nSkills: {$skillsStr}\nInterests: {$interestsStr}";
+                $skillsStr = ($p && $p->skills && $p->skills->count() > 0) ? $p->skills->pluck('name')->implode(', ') : 'Not specified yet';
+                $interestsStr = ($p && $p->interests && $p->interests->count() > 0) ? $p->interests->pluck('name')->implode(', ') : 'General Computer Science';
+                $projectsStr = ($p && $p->studentProjects && $p->studentProjects->count() > 0) ? $p->studentProjects->pluck('title')->implode(', ') : 'None recorded yet';
+                $dept = ($p && !empty($p->department)) ? $p->department : 'Computer Science';
+                $bioInfo = ($p && (!empty($p->bio) || !empty($p->about_me))) ? "\nBio: " . trim(($p->about_me ?? '') . ' ' . ($p->bio ?? '')) : '';
+
+                $studentContext = "Student Name: {$user->name}\n" .
+                    "Department: {$dept}\n" .
+                    "Technical Skills: {$skillsStr}\n" .
+                    "Interests: {$interestsStr}\n" .
+                    "Completed Projects: {$projectsStr}{$bioInfo}";
+            } else {
+                $studentContext = "Student Profile: Registered Student in Computer Science";
             }
 
             $eventRoster = implode("\n\n", $allEvents->map(function ($e) {

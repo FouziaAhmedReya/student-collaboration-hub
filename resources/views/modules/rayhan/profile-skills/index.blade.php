@@ -409,49 +409,40 @@
                 @endif
             </div>
 
-            {{-- Preferred Study Location & Interactive Map Section --}}
+            {{-- Preferred Study Location Section --}}
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div class="flex items-center gap-2">
-                        <div class="grid size-8 place-items-center rounded-lg bg-amber-50 text-amber-600">
+                        <div class="grid size-8 place-items-center rounded-lg bg-blue-50 text-blue-600">
                             <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
                         <div>
-                            <h2 class="text-base font-bold text-slate-900">Preferred Study Location</h2>
-                            <p class="text-xs text-slate-500">Coordinate-based campus or city study spot</p>
+                            <h2 class="text-base font-bold text-slate-900">Preferred Study Location / Address</h2>
+                            <p class="text-xs text-slate-500">Campus study spot and address</p>
                         </div>
                     </div>
-                    <a href="{{ route('profile.edit') }}" class="text-xs font-semibold text-blue-700 hover:underline">
-                        Change Location &rarr;
+                    <a href="{{ route('profile.edit') }}" class="text-xs font-bold text-blue-600 hover:underline">
+                        Edit Location &rarr;
                     </a>
                 </div>
 
-                <div class="mb-3 flex flex-wrap items-center gap-3 text-xs">
-                    @if($profile->preferred_location_name)
-                        <span class="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md">
-                            📍 {{ $profile->preferred_location_name }}
+                <div class="flex flex-wrap items-center gap-3 text-xs">
+                    @if($profile->preferred_location_name || $profile->location_name)
+                        <span class="font-bold text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                            📍 {{ $profile->preferred_location_name ?: $profile->location_name }}
                         </span>
                     @endif
                     @if($profile->preferred_location_address)
-                        <span class="text-slate-600 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                        <span class="text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                             {{ $profile->preferred_location_address }}
                         </span>
                     @endif
-                    @if($profile->latitude && $profile->longitude)
-                        <span class="text-slate-500 font-mono">
-                            Coordinates: {{ number_format($profile->latitude, 6) }}, {{ number_format($profile->longitude, 6) }}
-                        </span>
-                    @else
-                        <span class="text-amber-600 font-medium">No study coordinates saved yet.</span>
+                    @if(!$profile->preferred_location_name && !$profile->location_name && !$profile->preferred_location_address)
+                        <span class="text-slate-500 font-medium">No study address saved yet. <a href="{{ route('profile.edit') }}" class="text-blue-600 underline font-bold">Add Address</a></span>
                     @endif
-                </div>
-
-                {{-- Interactive Map --}}
-                <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 h-72 w-full">
-                    <div id="studyLocationMap" class="h-full w-full"></div>
                 </div>
             </div>
 
@@ -497,7 +488,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('addSkillModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">Save Skill</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Save to Database</button>
             </div>
         </form>
     </div>
@@ -563,7 +554,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('addInterestModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition">Save Interest</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Save Interest to Database</button>
             </div>
         </form>
     </div>
@@ -606,7 +597,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('addProjectModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition">Save Project</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Save Project to Database</button>
             </div>
         </form>
     </div>
@@ -650,7 +641,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('editProjectModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition">Update Project</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Update Project in Database</button>
             </div>
         </form>
     </div>
@@ -687,7 +678,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('addPortfolioModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition">Save Link</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Save Link to Database</button>
             </div>
         </form>
     </div>
@@ -725,7 +716,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="toggleModal('editPortfolioModal')" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition">Update Link</button>
+                <button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md transition-all" style="background-color: #2563eb !important; color: #ffffff !important;">Update Link in Database</button>
             </div>
         </form>
     </div>
@@ -813,27 +804,5 @@
                 list.innerHTML = '<span class="text-red-500">Could not load suggestions.</span>';
             });
     }
-
-    // Initialize Map with OpenStreetMap (Leaflet)
-    document.addEventListener('DOMContentLoaded', function () {
-        const defaultLat = {{ $profile->latitude ?? 23.777176 }};
-        const defaultLng = {{ $profile->longitude ?? 90.399452 }};
-        const locName = "{{ addslashes($profile->preferred_location_name ?? 'Preferred Study Spot') }}";
-
-        try {
-            const map = L.map('studyLocationMap').setView([defaultLat, defaultLng], 14);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            const marker = L.marker([defaultLat, defaultLng]).addTo(map);
-            marker.bindPopup(`<b>${locName}</b><br>Lat: ${defaultLat}, Lng: ${defaultLng}`).openPopup();
-        } catch (e) {
-            console.error("Map initialization failed", e);
-            document.getElementById('studyLocationMap').innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Map could not be rendered offline. Coordinates: ' + defaultLat + ', ' + defaultLng + '</div>';
-        }
-    });
 </script>
 @endsection

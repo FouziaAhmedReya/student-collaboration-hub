@@ -350,6 +350,28 @@ text-red-600 hover:text-red-700 hover:bg-red-50"
 
 <div class="flex items-center gap-2">
 
+{{-- Notification bell --}}
+<div class="relative" id="notification-bell-wrapper">
+    <button type="button" id="notification-bell-btn"
+        class="relative inline-flex size-8 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100">
+        <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span id="notification-badge"
+            class="absolute -right-0.5 -top-0.5 hidden min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white"></span>
+    </button>
+    <div id="notification-dropdown"
+        class="absolute right-0 z-50 mt-2 hidden w-80 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+        <div class="flex items-center justify-between px-2 py-1">
+            <p class="text-xs font-semibold text-slate-900">Notifications</p>
+            <a href="{{ route('notifications.index') }}" class="text-[11px] font-medium text-blue-600 hover:underline">View all</a>
+        </div>
+        <ul id="notification-items" class="mt-1 max-h-80 space-y-1 overflow-y-auto">
+            <li class="px-2 py-4 text-center text-xs text-slate-400">Loading...</li>
+        </ul>
+    </div>
+</div>
 
 <a
 href="{{ route('profile.index') }}"
@@ -488,7 +510,88 @@ bg-red-50 px-4 py-3 text-sm text-red-800"
 
 </main>
 
+@if($currentUser)
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const bellBtn = document.getElementById('notification-bell-btn');
+    const dropdown = document.getElementById('notification-dropdown');
+    const badge = document.getElementById('notification-badge');
+    const itemsList = document.getElementById('notification-items');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    let loaded = false;
 
+    function renderNotifications(payload) {
+        if (payload.unread_count > 0) {
+            badge.textContent = payload.unread_count > 9 ? '9+' : payload.unread_count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+
+        if (payload.notifications.length === 0) {
+            itemsList.innerHTML = '<li class="px-2 py-4 text-center text-xs text-slate-400">No notifications yet.</li>';
+            return;
+        }
+
+        itemsList.innerHTML = payload.notifications.map((n) => {
+            const isUnread = !n.read_at;
+            const title = n.data.title ?? 'Notification';
+            const body = n.data.body ?? '';
+            const url = n.data.url ?? '#';
+            return `
+                <li>
+                    <a href="${url}" data-notification-id="${n.id}"
+                       class="notification-item block rounded-lg px-2 py-2 text-xs hover:bg-slate-50 ${isUnread ? 'bg-blue-50' : ''}">
+                        <p class="font-medium text-slate-900">${title}</p>
+                        <p class="mt-0.5 text-slate-500">${body}</p>
+                    </a>
+                </li>
+            `;
+        }).join('');
+
+        itemsList.querySelectorAll('.notification-item').forEach((link) => {
+            link.addEventListener('click', async () => {
+                const id = link.dataset.notificationId;
+                await fetch(`/api/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                });
+            });
+        });
+    }
+
+    async function loadNotifications() {
+        try {
+            const response = await fetch('/api/notifications', { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) return;
+            renderNotifications(await response.json());
+        } catch (error) {
+            console.error('Failed to load notifications', error);
+        }
+    }
+
+    bellBtn?.addEventListener('click', () => {
+        dropdown.classList.toggle('hidden');
+        if (!dropdown.classList.contains('hidden') && !loaded) {
+            loaded = true;
+            loadNotifications();
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const wrapper = document.getElementById('notification-bell-wrapper');
+        if (wrapper && !wrapper.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Poll for the unread badge count every 60 seconds so it stays fresh
+    // even if the dropdown is never opened.
+    loadNotifications();
+    setInterval(loadNotifications, 60000);
+});
+</script>
+@endif
 
 </body>
 

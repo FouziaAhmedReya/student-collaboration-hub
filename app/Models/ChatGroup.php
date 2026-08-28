@@ -21,4 +21,18 @@ class ChatGroup extends Model
     {
         return $this->hasMany(Meeting::class)->orderBy('meeting_time');
     }
+
+    public function members(): HasMany
+    {
+        return $this->hasMany(ChatGroupMember::class);
+    }
+
+    public function isMember(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $this->members()->where('user_id', $user->id)->exists();
+    }
 }

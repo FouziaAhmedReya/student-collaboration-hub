@@ -4,35 +4,34 @@ namespace App\Http\Controllers\Modules\Sayeefa;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChatGroup;
+use App\Models\ChatGroupMember;
 use App\Models\Meeting;
 use App\Services\GoogleCalendarService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class GroupChatController extends Controller
 {
-    /**
-     * Web page: group list on the side, active group's chat thread and
-     * upcoming meetings in the main panel.
-     */
     public function index(Request $request): View
     {
         $groups = ChatGroup::query()->orderBy('name')->get();
 
         $activeGroupId = $request->integer('group_id') ?: $groups->first()?->id;
         $activeGroup = $activeGroupId
-            ? ChatGroup::with(['messages', 'meetings'])->find($activeGroupId)
+            ? ChatGroup::with(['messages.createdBy:id,name', 'meetings'])->find($activeGroupId)
             : null;
 
         return view('modules.sayeefa.group-chat.index', [
             'groups' => $groups,
             'activeGroup' => $activeGroup,
+            'isMemberOfActive' => $activeGroup?->isMember(Auth::user()) ?? false,
         ]);
     }
 
-    /** POST /api/chat-groups */
+    /** POST /api/chat-groups — creator automatically becomes the first member. */
     public function storeGroup(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -42,43 +41,67 @@ class GroupChatController extends Controller
 
         $group = ChatGroup::create($data);
 
+        ChatGroupMember::create([
+            'chat_group_id' => $group->id,
+            'user_id' => Auth::id(),
+        ]);
+
         return response()->json($group, 201);
     }
 
-    /** GET /api/chat-groups */
     public function apiGroups(): JsonResponse
     {
         return response()->json(ChatGroup::orderBy('name')->get());
     }
 
-    /** GET /api/chat-groups/{group}/messages */
-    public function apiMessages(ChatGroup $group): JsonResponse
+    /** POST /api/chat-groups/{group}/join */
+    public function joinGroup(ChatGroup $group): JsonResponse
     {
-        return response()->json($group->messages()->get());
+        ChatGroupMember::firstOrCreate([
+            'chat_group_id' => $group->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        return response()->json(['joined' => true]);
     }
 
-    /** POST /api/chat-groups/{group}/messages */
+    public function apiMessages(ChatGroup $group): JsonResponse
+    {
+        abort_unless($group->isMember(Auth::user()), 403, 'Join this group to view its messages.');
+
+        return response()->json($group->messages()->with('createdBy:id,name')->get());
+    }
+
+    /**
+     * POST /api/chat-groups/{group}/messages — only members of this group
+     * can post.
+     */
     public function sendMessage(Request $request, ChatGroup $group): JsonResponse
     {
-        $data = $request->validate([
-            'sender_name' => 'required|string|max:120',
+        abort_unless($group->isMember(Auth::user()), 403, 'Join this group before sending messages.');
+
+        $request->validate([
             'message' => 'required|string|max:2000',
         ]);
 
-        $message = $group->messages()->create($data);
+        $message = $group->messages()->create([
+            'sender_name' => Auth::user()->name,
+            'created_by_id' => Auth::id(),
+            'message' => $request->input('message'),
+        ]);
 
-        return response()->json($message, 201);
+        return response()->json($message->load('createdBy:id,name'), 201);
     }
 
-    /** GET /api/chat-groups/{group}/meetings */
     public function apiMeetings(ChatGroup $group): JsonResponse
     {
         return response()->json($group->meetings()->get());
     }
 
-    /** POST /api/chat-groups/{group}/meetings */
     public function storeMeeting(Request $request, ChatGroup $group): JsonResponse
     {
+        abort_unless($group->isMember(Auth::user()), 403, 'Join this group before scheduling its meetings.');
+
         $data = $request->validate([
             'title' => 'required|string|max:150',
             'meeting_time' => 'required|date',
@@ -92,19 +115,15 @@ class GroupChatController extends Controller
         return response()->json($meeting, 201);
     }
 
-    /** DELETE /api/meetings/{meeting} */
     public function destroyMeeting(Meeting $meeting): JsonResponse
     {
+        abort_unless($meeting->chatGroup->isMember(Auth::user()), 403, 'Join this group to manage its meetings.');
+
         $meeting->delete();
 
         return response()->json(['deleted' => true]);
     }
 
-    /**
-     * Creates a matching event on the shared Google group calendar.
-     * Returns null (instead of throwing) if the calendar isn't configured
-     * yet, so meeting creation always still works.
-     */
     private function syncMeetingToGoogleCalendar(array $data): ?string
     {
         return app(GoogleCalendarService::class)->createEvent(

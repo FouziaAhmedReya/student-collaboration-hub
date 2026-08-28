@@ -56,27 +56,39 @@
                     </div>
 
                     <div id="message-list" class="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-                        @foreach ($activeGroup->messages as $message)
-                            <div class="chat-message max-w-[80%] rounded-lg bg-slate-50 px-3 py-2"
-                                data-sender="{{ strtolower($message->sender_name) }}"
-                                data-text="{{ strtolower($message->message) }}">
-                                <p class="text-xs font-medium text-slate-500">{{ $message->sender_name }}</p>
-                                <p class="text-sm text-slate-800">{{ $message->message }}</p>
-                            </div>
-                        @endforeach
-                        <p id="chat-search-empty" class="hidden py-6 text-center text-sm text-slate-400">No messages match your search.</p>
+                        @if ($isMemberOfActive)
+                            @foreach ($activeGroup->messages as $message)
+                                <div class="chat-message max-w-[80%] rounded-lg bg-slate-50 px-3 py-2"
+                                    data-sender="{{ strtolower($message->sender_name) }}"
+                                    data-text="{{ strtolower($message->message) }}">
+                                    <p class="text-xs font-medium text-slate-500">{{ $message->sender_name }}</p>
+                                    <p class="text-sm text-slate-800">{{ $message->message }}</p>
+                                </div>
+                            @endforeach
+                            <p id="chat-search-empty" class="hidden py-6 text-center text-sm text-slate-400">No messages match your search.</p>
+                        @else
+                            <p class="py-10 text-center text-sm text-slate-400">Join this group to see its messages.</p>
+                        @endif
                     </div>
 
-                    <form id="message-form" data-group-id="{{ $activeGroup->id }}" class="flex gap-2 border-t border-slate-100 p-3">
-                        <input type="text" name="sender_name" placeholder="Your name" required
-                            class="w-28 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <input type="text" name="message" placeholder="Type a message..." required
-                            class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <button type="submit"
-                            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-200 hover:bg-blue-700">
-                            Send
-                        </button>
-                    </form>
+                    @if ($isMemberOfActive)
+                        <form id="message-form" data-group-id="{{ $activeGroup->id }}" class="flex gap-2 border-t border-slate-100 p-3">
+                            <input type="text" name="message" placeholder="Type a message..." required
+                                class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <button type="submit"
+                                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-200 hover:bg-blue-700">
+                                Send
+                            </button>
+                        </form>
+                    @else
+                        <div class="flex items-center justify-between border-t border-slate-100 p-3">
+                            <p class="text-xs text-slate-500">Join this group to read and send messages.</p>
+                            <button type="button" data-group-id="{{ $activeGroup->id }}"
+                                class="group-join-btn rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
+                                Join Group
+                            </button>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -195,6 +207,18 @@
                 alert('Could not send message (status ' + response.status + '):\n' + errorBody);
                 console.error('Send message failed', response.status, errorBody);
             }
+        });
+
+        document.querySelectorAll('.group-join-btn').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                const groupId = event.target.dataset.groupId;
+                const response = await fetch(`/api/chat-groups/${groupId}/join`, { method: 'POST', headers });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Could not join group.');
+                }
+            });
         });
 
         document.getElementById('meeting-form')?.addEventListener('submit', async (event) => {

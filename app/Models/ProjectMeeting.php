@@ -13,9 +13,11 @@ class ProjectMeeting extends Model
         'title',
         'agenda',
         'organizer',
+        'created_by_id',
         'meeting_time',
         'deadline',
         'google_calendar_event_id',
+        'reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -23,12 +25,18 @@ class ProjectMeeting extends Model
         return [
             'meeting_time' => 'datetime',
             'deadline' => 'date',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
     }
 
     public function files(): HasMany

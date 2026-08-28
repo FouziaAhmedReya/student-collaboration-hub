@@ -12,6 +12,7 @@ use App\Http\Controllers\Modules\Rayhan\StudyGroupController;
 use App\Http\Controllers\Modules\Rayhan\StudyGroupMemberController;
 use App\Http\Controllers\Modules\Sayeefa\MeetingSchedulerController;
 use App\Http\Controllers\Modules\Sayeefa\FileSharingController;
+use App\Http\Controllers\Modules\Sayeefa\NotificationController;
 use App\Http\Controllers\Modules\Fouzia\TutorFinderController;
 use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\EventAnnouncementController;
@@ -199,53 +200,69 @@ Route::prefix('api')->group(function () {
     Route::post('/auth/logout', [JwtAuthController::class, 'logout']);
 });
 
-// Sayeefa Module - Project Task Management (Web)
-Route::get('/tasks', [ProjectTaskController::class, 'index'])->name('tasks.index');
+// Sayeefa Module - Project Task Management, Group Chat, Meeting Scheduler,
+// File Sharing, and Notifications — all require login. Fine-grained checks
+// (student-only, project-leader-only, project-member-only, group-member-only)
+// happen inside each controller method.
+Route::middleware(['auth'])->group(function () {
+    // Project Task Management (Web)
+    Route::get('/tasks', [ProjectTaskController::class, 'index'])->name('tasks.index');
 
-// Sayeefa Module - Project Task Management (API)
-Route::prefix('api')->group(function () {
-    Route::get('/projects', [ProjectTaskController::class, 'apiProjects']);
-    Route::post('/projects', [ProjectTaskController::class, 'storeProject']);
-    Route::get('/tasks', [ProjectTaskController::class, 'apiTasks']);
-    Route::post('/tasks', [ProjectTaskController::class, 'store']);
-    Route::put('/tasks/{task}', [ProjectTaskController::class, 'update']);
-    Route::delete('/tasks/{task}', [ProjectTaskController::class, 'destroy']);
-});
+    // Project Task Management (API)
+    Route::prefix('api')->group(function () {
+        Route::get('/projects', [ProjectTaskController::class, 'apiProjects']);
+        Route::post('/projects', [ProjectTaskController::class, 'storeProject']);
+        Route::post('/projects/{project}/join', [ProjectTaskController::class, 'joinProject']);
+        Route::get('/tasks', [ProjectTaskController::class, 'apiTasks']);
+        Route::post('/tasks', [ProjectTaskController::class, 'store']);
+        Route::put('/tasks/{task}', [ProjectTaskController::class, 'update']);
+        Route::delete('/tasks/{task}', [ProjectTaskController::class, 'destroy']);
+    });
 
-// Sayeefa Module - Group Chat (Web)
-Route::get('/group-chat', [GroupChatController::class, 'index'])->name('group-chat.index');
+    // Group Chat (Web)
+    Route::get('/group-chat', [GroupChatController::class, 'index'])->name('group-chat.index');
 
-// Sayeefa Module - Group Chat (API)
-Route::prefix('api')->group(function () {
-    Route::get('/chat-groups', [GroupChatController::class, 'apiGroups']);
-    Route::post('/chat-groups', [GroupChatController::class, 'storeGroup']);
-    Route::get('/chat-groups/{group}/messages', [GroupChatController::class, 'apiMessages']);
-    Route::post('/chat-groups/{group}/messages', [GroupChatController::class, 'sendMessage']);
-    Route::get('/chat-groups/{group}/meetings', [GroupChatController::class, 'apiMeetings']);
-    Route::post('/chat-groups/{group}/meetings', [GroupChatController::class, 'storeMeeting']);
-    Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
-});
+    // Group Chat (API)
+    Route::prefix('api')->group(function () {
+        Route::get('/chat-groups', [GroupChatController::class, 'apiGroups']);
+        Route::post('/chat-groups', [GroupChatController::class, 'storeGroup']);
+        Route::post('/chat-groups/{group}/join', [GroupChatController::class, 'joinGroup']);
+        Route::get('/chat-groups/{group}/messages', [GroupChatController::class, 'apiMessages']);
+        Route::post('/chat-groups/{group}/messages', [GroupChatController::class, 'sendMessage']);
+        Route::get('/chat-groups/{group}/meetings', [GroupChatController::class, 'apiMeetings']);
+        Route::post('/chat-groups/{group}/meetings', [GroupChatController::class, 'storeMeeting']);
+        Route::delete('/meetings/{meeting}', [GroupChatController::class, 'destroyMeeting']);
+    });
 
-// Sayeefa Module - Meeting Scheduler (Web)
-Route::get('/meetings', [MeetingSchedulerController::class, 'index'])->name('meetings.index');
+    // Meeting Scheduler (Web)
+    Route::get('/meetings', [MeetingSchedulerController::class, 'index'])->name('meetings.index');
 
-// Sayeefa Module - Meeting Scheduler (API)
-Route::prefix('api')->group(function () {
-    Route::get('/meetings', [MeetingSchedulerController::class, 'apiMeetings']);
-    Route::post('/meetings', [MeetingSchedulerController::class, 'store']);
-    Route::put('/meetings/{meeting}', [MeetingSchedulerController::class, 'update']);
-    Route::delete('/meetings/{meeting}', [MeetingSchedulerController::class, 'destroy']);
-});
+    // Meeting Scheduler (API)
+    Route::prefix('api')->group(function () {
+        Route::get('/meetings', [MeetingSchedulerController::class, 'apiMeetings']);
+        Route::post('/meetings', [MeetingSchedulerController::class, 'store']);
+        Route::put('/meetings/{meeting}', [MeetingSchedulerController::class, 'update']);
+        Route::delete('/meetings/{meeting}', [MeetingSchedulerController::class, 'destroy']);
+    });
 
-// Sayeefa Module - File Sharing (Web)
-Route::get('/files', [FileSharingController::class, 'index'])->name('files.index');
+    // File Sharing (Web)
+    Route::get('/files', [FileSharingController::class, 'index'])->name('files.index');
 
-// Sayeefa Module - File Sharing (API)
-Route::prefix('api')->group(function () {
-    Route::get('/files', [FileSharingController::class, 'apiFiles']);
-    Route::post('/files', [FileSharingController::class, 'store']);
-    Route::get('/projects/{project}/meetings-and-tasks', [FileSharingController::class, 'apiProjectContext']);
-    Route::delete('/files/{file}', [FileSharingController::class, 'destroy']);
+    // File Sharing (API)
+    Route::prefix('api')->group(function () {
+        Route::get('/files', [FileSharingController::class, 'apiFiles']);
+        Route::post('/files', [FileSharingController::class, 'store']);
+        Route::get('/projects/{project}/meetings-and-tasks', [FileSharingController::class, 'apiProjectContext']);
+        Route::delete('/files/{file}', [FileSharingController::class, 'destroy']);
+    });
+
+    // Notifications (Web + API — powers the nav bell and the full list page)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::prefix('api')->group(function () {
+        Route::get('/notifications', [NotificationController::class, 'apiIndex']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    });
 });
 
 // Rayhan Module 1 - Student Profile & Skill Management

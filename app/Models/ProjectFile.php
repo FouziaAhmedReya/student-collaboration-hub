@@ -12,6 +12,7 @@ class ProjectFile extends Model
         'meeting_id',
         'task_id',
         'uploaded_by',
+        'created_by_id',
         'original_name',
         'cloudinary_public_id',
         'secure_url',
@@ -32,5 +33,10 @@ class ProjectFile extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
     }
 }

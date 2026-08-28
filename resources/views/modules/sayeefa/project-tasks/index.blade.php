@@ -25,6 +25,16 @@
                     <p class="mt-2 text-xs font-medium text-blue-600">
                         {{ $tasks->where('project_id', $project->id)->count() }} task(s)
                     </p>
+                    @if ($project->isMember(auth()->user()))
+                        <p class="mt-2 text-[11px] font-medium {{ $project->isLeader(auth()->user()) ? 'text-amber-600' : 'text-emerald-600' }}">
+                            {{ $project->isLeader(auth()->user()) ? '★ You are the team leader' : '✓ You are a member' }}
+                        </p>
+                    @else
+                        <button type="button" data-project-id="{{ $project->id }}"
+                            class="project-join-btn mt-2 rounded-lg border border-blue-200 px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50">
+                            Join this project
+                        </button>
+                    @endif
                 </li>
             @empty
                 <li class="text-sm text-slate-400">No projects yet — create one below.</li>
@@ -37,7 +47,12 @@
         <div class="space-y-6 lg:col-span-1">
             <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-4 text-sm font-semibold text-slate-900">New Project</h2>
-                <form id="project-form" class="space-y-3">
+                @unless ($canCreateProjects)
+                    <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        Only students can create projects. Your account role doesn't have that permission.
+                    </p>
+                @endunless
+                <form id="project-form" class="space-y-3 {{ $canCreateProjects ? '' : 'pointer-events-none opacity-40' }}">
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Title</label>
                         <input type="text" name="title" required
@@ -81,8 +96,14 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Assigned to</label>
-                        <input type="text" name="assigned_to" required
+                        <select name="assigned_user_id" required
                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="" disabled selected>Select a team member</option>
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-400">They'll get an email + in-app reminder at the "Notify at" time below.</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -123,9 +144,14 @@
                             <div>
                                 <p class="font-medium text-slate-900">{{ $task->title }}</p>
                                 <p class="text-xs text-slate-500">
-                                    {{ $task->project->title ?? 'No project' }} · Assigned to {{ $task->assigned_to }}
+                                    {{ $task->project->title ?? 'No project' }} · Assigned to {{ $task->assignedUser->name ?? $task->assigned_to }}
                                     · Due {{ $task->deadline?->format('M j, Y') }}
                                 </p>
+                                @if ($task->notify_at)
+                                    <p class="mt-0.5 text-[11px] {{ $task->reminder_sent_at ? 'text-emerald-600' : 'text-slate-400' }}">
+                                        {{ $task->reminder_sent_at ? 'Reminder sent' : 'Reminder scheduled for ' . $task->notify_at->format('M j, g:i A') }}
+                                    </p>
+                                @endif
                                 @if ($task->google_calendar_event_id)
                                     <span class="mt-1 inline-flex items-center gap-1 text-xs text-emerald-600">
                                         <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -189,6 +215,19 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Could not create task (status ' + response.status + '):\n' + errorBody);
             console.error('Create task failed', response.status, errorBody);
         }
+    });
+
+    document.querySelectorAll('.project-join-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            const projectId = event.target.dataset.projectId;
+            const response = await fetch(`/api/projects/${projectId}/join`, { method: 'POST', headers });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const errorBody = await response.text();
+                alert('Could not join project (status ' + response.status + '):\n' + errorBody);
+            }
+        });
     });
 
     document.querySelectorAll('.task-status-select').forEach((select) => {

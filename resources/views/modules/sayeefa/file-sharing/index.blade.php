@@ -12,12 +12,18 @@
         <div class="lg:col-span-1">
             <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-4 text-sm font-semibold text-slate-900">Upload File</h2>
-                <form id="file-form" class="space-y-3" enctype="multipart/form-data">
+                @if ($memberProjects->isEmpty())
+                    <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        You're not a member of any project team yet. Join a project on the
+                        <a href="{{ route('tasks.index') }}" class="underline">Tasks page</a> before uploading files.
+                    </p>
+                @endif
+                <form id="file-form" class="space-y-3 {{ $memberProjects->isEmpty() ? 'pointer-events-none opacity-40' : '' }}" enctype="multipart/form-data">
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Project</label>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Project (you must be a member)</label>
                         <select name="project_id" id="file-project-select" required
                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            @foreach ($projects as $project)
+                            @foreach ($memberProjects as $project)
                                 <option value="{{ $project->id }}" @selected($selectedProjectId === $project->id)>
                                     {{ $project->title }}
                                 </option>
@@ -38,11 +44,7 @@
                             <option value="">None</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Your name</label>
-                        <input type="text" name="uploaded_by" required
-                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    </div>
+                    <p class="text-xs text-slate-500">Uploading as: <span class="font-medium text-slate-700">{{ auth()->user()->name }}</span></p>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">File</label>
                         <input type="file" name="file" required

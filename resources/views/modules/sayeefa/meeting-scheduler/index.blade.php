@@ -12,12 +12,17 @@
         <div class="lg:col-span-1">
             <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-4 text-sm font-semibold text-slate-900">New Meeting</h2>
-                <form id="meeting-form" class="space-y-3">
+                @if ($leadableProjects->isEmpty())
+                    <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        You're not the team leader of any project yet. Only a project's leader (the student who created it) can schedule its meetings.
+                    </p>
+                @endif
+                <form id="meeting-form" class="space-y-3 {{ $leadableProjects->isEmpty() ? 'pointer-events-none opacity-40' : '' }}">
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Project</label>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Project (you must be the leader)</label>
                         <select name="project_id" required
                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            @foreach ($projects as $project)
+                            @foreach ($leadableProjects as $project)
                                 <option value="{{ $project->id }}" @selected($selectedProjectId === $project->id)>
                                     {{ $project->title }}
                                 </option>
@@ -34,11 +39,7 @@
                         <textarea name="agenda" rows="2"
                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Organizer (team leader)</label>
-                        <input type="text" name="organizer" required
-                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    </div>
+                    <p class="text-xs text-slate-500">Organizer: <span class="font-medium text-slate-700">{{ auth()->user()->name }}</span></p>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Meeting time</label>
                         <input type="datetime-local" name="meeting_time" required

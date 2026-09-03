@@ -3,63 +3,63 @@
 namespace App\Http\Controllers\Modules\Fouzia;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Tutor;
 use App\Models\TutorMaterial;
-
+use App\Models\TutorRating;
 use App\Services\CloudinaryService;
-
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-
 use Throwable;
 
 class TutorFinderController extends Controller
 {
     public function __construct(
         private readonly CloudinaryService $cloudinary
-    ) {
-    }
+    ) {}
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Show Tutors + Search
-    |--------------------------------------------------------------------------
-    */
-    public function index(
-        Request $request
-    ): View {
-
+    /**
+     * Display approved Tutors and apply search filters.
+     */
+    public function index(Request $request): View
+    {
         $subject = $request
             ->string('subject')
             ->trim()
             ->toString();
-
 
         $availability = $request
             ->string('availability')
             ->trim()
             ->toString();
 
-
         $minRating = $request->input(
             'min_rating'
         );
 
-
+        /*
+         * Only display Tutor profiles connected to
+         * approved registered Tutor accounts.
+         */
         $tutors = Tutor::query()
+            ->with([
+                'user:id,name,email,role,status',
 
-            ->with('materials')
+                'materials',
 
-            /*
-            | Search by subject
-            */
+                'ratings.student:id,name',
+            ])
+            ->whereHas(
+                'user',
+                function ($query) {
+                    $query
+                        ->where('role', 'tutor')
+                        ->where('status', 'approved');
+                }
+            )
             ->when(
                 $subject !== '',
-
                 fn ($query) =>
                     $query->where(
                         'subject',
@@ -67,13 +67,8 @@ class TutorFinderController extends Controller
                         '%'.$subject.'%'
                     )
             )
-
-            /*
-            | Search by availability
-            */
             ->when(
                 $availability !== '',
-
                 fn ($query) =>
                     $query->where(
                         'availability',
@@ -81,15 +76,9 @@ class TutorFinderController extends Controller
                         '%'.$availability.'%'
                     )
             )
-
-            /*
-            | Search by minimum rating
-            */
             ->when(
                 $minRating !== null
-                &&
-                $minRating !== '',
-
+                && $minRating !== '',
                 fn ($query) =>
                     $query->where(
                         'rating',
@@ -97,62 +86,82 @@ class TutorFinderController extends Controller
                         (float) $minRating
                     )
             )
-
             ->orderByDesc('rating')
-
             ->latest()
-
             ->get();
 
+        /*
+         * Mark only the logged-in Tutor's own profile
+         * as manageable.
+         */
+        $tutors->each(
+            function (Tutor $tutor): void {
+                $tutor->setAttribute(
+                    'can_manage',
+                    auth()->user()->role === 'tutor'
+                    && (int) $tutor->user_id
+                        === (int) auth()->id()
+                );
+            }
+        );
 
         /*
-        |--------------------------------------------------------------------------
-        | Determine Which Tutor Belongs to Current Browser
-        |--------------------------------------------------------------------------
-        */
-        foreach ($tutors as $tutor) {
-
-            $tutor->setAttribute(
-                'can_manage',
-
-                $this->browserOwnsTutor(
-                    $request,
-                    $tutor
-                )
-            );
-        }
-
+         * Check whether the logged-in Tutor already
+         * has a Tutor Finder profile.
+         */
+        $currentTutor =
+            auth()->user()->role === 'tutor'
+                ? Tutor::where(
+                    'user_id',
+                    auth()->id()
+                )->first()
+                : null;
 
         return view(
             'tutor-finder.index',
-            compact('tutors')
+            compact(
+                'tutors',
+                'currentTutor'
+            )
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Add Tutor
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Create a Tutor Finder profile.
+     */
     public function store(
         Request $request
     ): RedirectResponse {
+        $user = auth()->user();
+
+        /*
+         * Only an approved registered Tutor
+         * can create a Tutor Finder profile.
+         */
+        abort_unless(
+            $user->role === 'tutor'
+            && $user->status === 'approved',
+            403,
+            'Only an approved Tutor can create a Tutor profile.'
+        );
+
+        /*
+         * One registered Tutor can have
+         * only one Tutor Finder profile.
+         */
+        if (
+            Tutor::where(
+                'user_id',
+                $user->id
+            )->exists()
+        ) {
+            return back()->withErrors([
+                'profile' =>
+                    'You already have a Tutor Finder profile.',
+            ]);
+        }
 
         $validated = $request->validate([
-
-            'name' => [
-                'required',
-                'string',
-                'max:120',
-            ],
-
-            'email' => [
-                'nullable',
-                'email',
-                'max:160',
-            ],
-
             'subject' => [
                 'required',
                 'string',
@@ -163,13 +172,6 @@ class TutorFinderController extends Controller
                 'required',
                 'string',
                 'max:160',
-            ],
-
-            'rating' => [
-                'required',
-                'numeric',
-                'min:0',
-                'max:5',
             ],
 
             'bio' => [
@@ -186,283 +188,167 @@ class TutorFinderController extends Controller
             ],
         ]);
 
-
         $profileUpload = null;
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Upload Tutor Profile Image to Cloudinary
-        |--------------------------------------------------------------------------
-        */
-        if (
-            $request->hasFile(
-                'profile_image'
-            )
-        ) {
-
+         * Upload the optional profile image
+         * through Cloudinary.
+         */
+        if ($request->hasFile('profile_image')) {
             try {
-
                 $profileUpload =
                     $this->cloudinary->upload(
-
                         $request->file(
                             'profile_image'
                         ),
-
                         'student-collaboration-hub/tutors/profile-images'
                     );
-
             } catch (Throwable $exception) {
-
                 report($exception);
 
-
                 return back()
-
                     ->withInput()
-
                     ->withErrors([
-
                         'profile_image' =>
-                            'Profile image upload failed: '
-                            .$exception->getMessage(),
-
+                            'Profile image upload failed. '.
+                            $exception->getMessage(),
                     ]);
             }
         }
 
+        try {
+            Tutor::create([
+                'user_id' => $user->id,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Ownership Token
-        |--------------------------------------------------------------------------
-        |
-        | Actual secret token:
-        | stored only in browser cookie.
-        |
-        | Hash:
-        | stored in database.
-        |
-        */
-        $ownerToken =
-            bin2hex(
-                random_bytes(32)
-            );
+                /*
+                 * Name and email come from the
+                 * registered Tutor account.
+                 */
+                'name' => $user->name,
 
+                'email' => $user->email,
 
-        $ownerTokenHash =
-            hash(
-                'sha256',
-                $ownerToken
-            );
+                'subject' =>
+                    $validated['subject'],
 
+                'availability' =>
+                    $validated['availability'],
 
-        /*
-        |--------------------------------------------------------------------------
-        | Create Tutor
-        |--------------------------------------------------------------------------
-        */
-        $tutor = Tutor::create([
+                'rating' => 0,
 
-            'name' =>
-                $validated['name'],
+                'bio' =>
+                    $validated['bio'] ?? null,
 
-            'email' =>
-                $validated['email']
-                ?? null,
+                'profile_image_url' =>
+                    $profileUpload['secure_url']
+                    ?? null,
 
-            'subject' =>
-                $validated['subject'],
+                'profile_image_public_id' =>
+                    $profileUpload['public_id']
+                    ?? null,
 
-            'availability' =>
-                $validated['availability'],
+                'profile_image_resource_type' =>
+                    $profileUpload['resource_type']
+                    ?? null,
+            ]);
+        } catch (Throwable $exception) {
+            /*
+             * Remove the Cloudinary image when
+             * database creation fails.
+             */
+            if ($profileUpload) {
+                $this->removeUploadedFile(
+                    $profileUpload
+                );
+            }
 
-            'rating' =>
-                $validated['rating'],
-
-            'bio' =>
-                $validated['bio']
-                ?? null,
-
-            'profile_image_url' =>
-                $profileUpload[
-                    'secure_url'
-                ] ?? null,
-
-            'profile_image_public_id' =>
-                $profileUpload[
-                    'public_id'
-                ] ?? null,
-
-            'profile_image_resource_type' =>
-                $profileUpload[
-                    'resource_type'
-                ] ?? null,
-
-            'owner_token_hash' =>
-                $ownerTokenHash,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Save Secret Ownership Token in Browser Cookie
-        |--------------------------------------------------------------------------
-        |
-        | Cookie:
-        | - lasts 1 year
-        | - HttpOnly
-        | - SameSite Lax
-        |
-        */
-        Cookie::queue(
-
-            Cookie::make(
-
-                $this->ownerCookieName(
-                    $tutor
-                ),
-
-                $ownerToken,
-
-                60 * 24 * 365,
-
-                '/',
-
-                null,
-
-                $request->isSecure(),
-
-                true,
-
-                false,
-
-                'lax'
-            )
-        );
-
+            throw $exception;
+        }
 
         return redirect()
-
             ->route('tutors.index')
-
             ->with(
                 'success',
-                'Tutor profile added successfully. This browser now owns this tutor profile.'
+                'Your Tutor profile was created successfully.'
             );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Upload Teaching Material
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Upload a teaching material.
+     */
     public function uploadMaterial(
         Request $request,
         Tutor $tutor
     ): RedirectResponse {
-
         /*
-        |--------------------------------------------------------------------------
-        | Only Tutor Owner Can Upload
-        |--------------------------------------------------------------------------
-        */
-        $this->ensureTutorOwner(
-            $request,
-            $tutor
-        );
+         * The logged-in Tutor must own this profile.
+         */
+        $this->ensureTutorOwner($tutor);
 
+        $validated = $request->validate([
+            'material_title' => [
+                'required',
+                'string',
+                'max:160',
+            ],
 
-        $validated =
-            $request->validate([
+            'material_file' => [
+                'required',
+                'file',
+                'mimes:pdf,doc,docx,ppt,pptx,txt,zip',
+                'max:20480',
+            ],
+        ]);
 
-                'material_title' => [
-                    'required',
-                    'string',
-                    'max:160',
-                ],
-
-                'material_file' => [
-                    'required',
-                    'file',
-
-                    'mimes:pdf,doc,docx,ppt,pptx,txt,zip',
-
-                    'max:20480',
-                ],
-            ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Material to Cloudinary
-        |--------------------------------------------------------------------------
-        */
         try {
-
             $uploaded =
                 $this->cloudinary->upload(
-
                     $request->file(
                         'material_file'
                     ),
-
                     'student-collaboration-hub/tutors/materials'
                 );
-
         } catch (Throwable $exception) {
-
             report($exception);
 
-
             return back()->withErrors([
-
                 'material_file' =>
-                    'Material upload failed: '
-                    .$exception->getMessage(),
-
+                    'Teaching material upload failed. '.
+                    $exception->getMessage(),
             ]);
         }
 
+        try {
+            TutorMaterial::create([
+                'tutor_id' => $tutor->id,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Save Material in Database
-        |--------------------------------------------------------------------------
-        */
-        TutorMaterial::create([
+                'title' =>
+                    $validated['material_title'],
 
-            'tutor_id' =>
-                $tutor->id,
-
-            'title' =>
-                $validated[
-                    'material_title'
-                ],
-
-            'file_name' =>
-                $request
+                'file_name' => $request
                     ->file('material_file')
                     ->getClientOriginalName(),
 
-            'file_url' =>
-                $uploaded[
-                    'secure_url'
-                ],
+                'file_url' =>
+                    $uploaded['secure_url'],
 
-            'cloudinary_public_id' =>
-                $uploaded[
-                    'public_id'
-                ],
+                'cloudinary_public_id' =>
+                    $uploaded['public_id'],
 
-            'resource_type' =>
-                $uploaded[
-                    'resource_type'
-                ],
-        ]);
+                'resource_type' =>
+                    $uploaded['resource_type'],
+            ]);
+        } catch (Throwable $exception) {
+            /*
+             * Remove the Cloudinary file if
+             * database creation fails.
+             */
+            $this->removeUploadedFile(
+                $uploaded
+            );
 
+            throw $exception;
+        }
 
         return back()->with(
             'success',
@@ -470,87 +356,41 @@ class TutorFinderController extends Controller
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Teaching Material
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Delete one teaching material.
+     */
     public function destroyMaterial(
-        Request $request,
         Tutor $tutor,
         TutorMaterial $material
     ): RedirectResponse {
+        $this->ensureTutorOwner($tutor);
 
         /*
-        |--------------------------------------------------------------------------
-        | Only Owner Can Delete
-        |--------------------------------------------------------------------------
-        */
-        $this->ensureTutorOwner(
-            $request,
-            $tutor
+         * Confirm the material belongs
+         * to the selected Tutor profile.
+         */
+        abort_unless(
+            (int) $material->tutor_id
+                === (int) $tutor->id,
+            404
         );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Make Sure Material Belongs to Tutor
-        |--------------------------------------------------------------------------
-        */
-        if (
-            (int) $material->tutor_id
-            !==
-            (int) $tutor->id
-        ) {
-
-            abort(404);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Material from Cloudinary
-        |--------------------------------------------------------------------------
-        */
         try {
-
-            if (
-                $material->cloudinary_public_id
-                &&
+            $this->cloudinary->destroy(
+                $material->cloudinary_public_id,
                 $material->resource_type
-            ) {
+            );
 
-                $this->cloudinary->destroy(
-
-                    $material->cloudinary_public_id,
-
-                    $material->resource_type
-                );
-            }
-
+            $material->delete();
         } catch (Throwable $exception) {
-
             report($exception);
 
-
             return back()->withErrors([
-
                 'material_delete' =>
-                    'Teaching material could not be deleted: '
-                    .$exception->getMessage(),
-
+                    'Teaching material could not be deleted. '.
+                    $exception->getMessage(),
             ]);
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Material from Database
-        |--------------------------------------------------------------------------
-        */
-        $material->delete();
-
 
         return back()->with(
             'success',
@@ -558,254 +398,171 @@ class TutorFinderController extends Controller
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Tutor
-    |--------------------------------------------------------------------------
-    */
-    public function destroy(
+    /**
+     * Submit or update a Student rating.
+     */
+    public function rate(
         Request $request,
         Tutor $tutor
     ): RedirectResponse {
-
         /*
-        |--------------------------------------------------------------------------
-        | Only Owner Can Delete Tutor
-        |--------------------------------------------------------------------------
-        */
-        $this->ensureTutorOwner(
-            $request,
-            $tutor
+         * The route is Student-only, but also confirm
+         * that the selected Tutor is approved.
+         */
+        abort_unless(
+            $tutor->user
+            && $tutor->user->role === 'tutor'
+            && $tutor->user->status === 'approved',
+            404
         );
 
+        $validated = $request->validate([
+            'rating' => [
+                'required',
+                'numeric',
+                'min:1',
+                'max:5',
+            ],
+
+            'review' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+        ]);
 
         /*
-        | Remember cookie name
-        | before deleting tutor.
-        */
-        $cookieName =
-            $this->ownerCookieName(
-                $tutor
-            );
+         * One rating per Student and Tutor.
+         * Submitting again updates the previous rating.
+         */
+        TutorRating::updateOrCreate(
+            [
+                'tutor_id' => $tutor->id,
 
+                'user_id' => auth()->id(),
+            ],
+            [
+                'rating' =>
+                    $validated['rating'],
 
-        /*
-        | Load teaching materials.
-        */
-        $tutor->load(
-            'materials'
+                'review' =>
+                    $validated['review'] ?? null,
+            ]
         );
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Delete Tutor Files from Cloudinary
-        |--------------------------------------------------------------------------
-        */
+         * Recalculate the Tutor's average rating.
+         */
+        $tutor->refreshAverageRating();
+
+        return back()->with(
+            'success',
+            'Your Tutor rating was saved.'
+        );
+    }
+
+    /**
+     * Delete the logged-in Tutor's profile.
+     */
+    public function destroy(
+        Tutor $tutor
+    ): RedirectResponse {
+        $this->ensureTutorOwner($tutor);
+
+        $tutor->load('materials');
+
         try {
-
             /*
-            | Delete every teaching material.
-            */
+             * Delete all teaching materials
+             * from Cloudinary.
+             */
             foreach (
                 $tutor->materials
                 as $material
             ) {
-
-                if (
-                    $material->cloudinary_public_id
-                    &&
+                $this->cloudinary->destroy(
+                    $material->cloudinary_public_id,
                     $material->resource_type
-                ) {
-
-                    $this->cloudinary->destroy(
-
-                        $material->cloudinary_public_id,
-
-                        $material->resource_type
-                    );
-                }
+                );
             }
 
-
             /*
-            | Delete tutor profile image.
-            */
+             * Delete the profile image
+             * from Cloudinary.
+             */
             if (
                 $tutor->profile_image_public_id
-                &&
-                $tutor->profile_image_resource_type
+                && $tutor->profile_image_resource_type
             ) {
-
                 $this->cloudinary->destroy(
-
                     $tutor->profile_image_public_id,
-
                     $tutor->profile_image_resource_type
                 );
             }
 
+            /*
+             * Tutor materials and ratings are deleted
+             * automatically through database cascades.
+             */
+            $tutor->delete();
         } catch (Throwable $exception) {
-
             report($exception);
 
-
             return back()->withErrors([
-
                 'tutor_delete' =>
-                    'Tutor could not be deleted: '
-                    .$exception->getMessage(),
-
+                    'Tutor profile could not be deleted. '.
+                    $exception->getMessage(),
             ]);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Tutor from Database
-        |--------------------------------------------------------------------------
-        |
-        | If your tutor_materials foreign key uses
-        | cascadeOnDelete(), the material database rows
-        | are also automatically removed.
-        |
-        */
-        $tutor->delete();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Remove Ownership Cookie
-        |--------------------------------------------------------------------------
-        */
-        Cookie::queue(
-            Cookie::forget(
-                $cookieName
-            )
-        );
-
-
         return redirect()
-
             ->route('tutors.index')
-
             ->with(
                 'success',
-                'Your tutor profile and teaching materials were deleted successfully.'
+                'Your Tutor profile was deleted.'
             );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Browser Ownership
-    |--------------------------------------------------------------------------
-    */
-    private function browserOwnsTutor(
-        Request $request,
+    /**
+     * Confirm the logged-in approved Tutor
+     * owns the selected profile.
+     */
+    private function ensureTutorOwner(
         Tutor $tutor
-    ): bool {
-
-        /*
-        | Tutors created before this system
-        | have no ownership token.
-        */
-        if (
-            empty(
-                $tutor->owner_token_hash
-            )
-        ) {
-
-            return false;
-        }
-
-
-        /*
-        | Get ownership token from browser cookie.
-        */
-        $ownerToken =
-            $request->cookie(
-
-                $this->ownerCookieName(
-                    $tutor
-                )
-            );
-
-
-        /*
-        | No ownership cookie found.
-        */
-        if (
-            ! is_string(
-                $ownerToken
-            )
-            ||
-            $ownerToken === ''
-        ) {
-
-            return false;
-        }
-
-
-        /*
-        | Hash browser's token.
-        */
-        $browserHash =
-            hash(
-                'sha256',
-                $ownerToken
-            );
-
-
-        /*
-        | Secure comparison.
-        */
-        return hash_equals(
-
-            $tutor->owner_token_hash,
-
-            $browserHash
+    ): void {
+        abort_unless(
+            auth()->user()->role === 'tutor'
+            && auth()->user()->status === 'approved'
+            && (int) $tutor->user_id
+                === (int) auth()->id(),
+            403,
+            'You can only manage your own Tutor profile.'
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Require Ownership
-    |--------------------------------------------------------------------------
-    */
-    private function ensureTutorOwner(
-        Request $request,
-        Tutor $tutor
+    /**
+     * Remove a Cloudinary upload after a failed operation.
+     */
+    private function removeUploadedFile(
+        array $uploaded
     ): void {
+        try {
+            $this->cloudinary->destroy(
+                $uploaded['public_id'],
+                $uploaded['resource_type']
+            );
+        } catch (Throwable $exception) {
+            Log::warning(
+                'A Tutor Finder Cloudinary file could not be removed.',
+                [
+                    'public_id' =>
+                        $uploaded['public_id']
+                        ?? null,
 
-        if (
-            ! $this->browserOwnsTutor(
-                $request,
-                $tutor
-            )
-        ) {
-
-            abort(
-                403,
-                'You are not allowed to manage this tutor profile.'
+                    'error' =>
+                        $exception->getMessage(),
+                ]
             );
         }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ownership Cookie Name
-    |--------------------------------------------------------------------------
-    */
-    private function ownerCookieName(
-        Tutor $tutor
-    ): string {
-
-        return
-            'tutor_owner_'
-            .$tutor->id;
     }
 }

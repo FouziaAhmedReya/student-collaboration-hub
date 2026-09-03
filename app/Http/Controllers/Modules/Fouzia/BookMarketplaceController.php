@@ -11,7 +11,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
@@ -22,8 +21,12 @@ class BookMarketplaceController extends Controller
 {
     public function __construct(
         private readonly CloudinaryService $cloudinary
-    ) {}
+    ) {
+    }
 
+    /**
+     * Display all marketplace books.
+     */
     public function index(Request $request): View
     {
         $search = $request->string('search')
@@ -42,151 +45,121 @@ class BookMarketplaceController extends Controller
             ->trim()
             ->toString();
 
-        $status = $request->string(
-            'status',
-            'active'
-        )->toString();
+        $status = $request->string('status', 'active')
+            ->trim()
+            ->toString();
 
-        $sort = $request->string(
-            'sort',
-            'latest'
-        )->toString();
+        $sort = $request->string('sort', 'latest')
+            ->trim()
+            ->toString();
 
         $books = Book::query()
+            ->with('seller:id,name,email')
+
             ->when(
-                $search,
-                function (
-                    Builder $query,
-                    string $search
-                ) {
+                $search !== '',
+                function (Builder $query) use ($search) {
                     $query->where(
-                        function (
-                            Builder $query
-                        ) use ($search) {
-                            $query
+                        function (Builder $innerQuery) use ($search) {
+                            $innerQuery
                                 ->where(
                                     'title',
                                     'like',
-                                    '%'.$search.'%'
+                                    '%' . $search . '%'
                                 )
                                 ->orWhere(
                                     'author',
                                     'like',
-                                    '%'.$search.'%'
+                                    '%' . $search . '%'
                                 )
                                 ->orWhere(
                                     'course',
                                     'like',
-                                    '%'.$search.'%'
+                                    '%' . $search . '%'
                                 );
                         }
                     );
                 }
             )
+
             ->when(
-                $category,
-                fn (
-                    Builder $query,
-                    string $value
-                ) => $query->where(
-                    'category',
-                    $value
-                )
+                $category !== '',
+                fn (Builder $query) =>
+                    $query->where('category', $category)
             )
+
             ->when(
-                $course,
-                fn (
-                    Builder $query,
-                    string $value
-                ) => $query->where(
-                    'course',
-                    $value
-                )
+                $course !== '',
+                fn (Builder $query) =>
+                    $query->where('course', $course)
             )
+
             ->when(
-                $condition,
-                fn (
-                    Builder $query,
-                    string $value
-                ) => $query->where(
-                    'condition',
-                    $value
-                )
+                $condition !== '',
+                fn (Builder $query) =>
+                    $query->where('condition', $condition)
             )
+
             ->when(
                 $status !== 'all',
-                fn (
-                    Builder $query
-                ) => $query->where(
-                    'status',
-                    $status
-                )
+                fn (Builder $query) =>
+                    $query->where('status', $status)
             );
 
         match ($sort) {
             'oldest' => $books->oldest(),
 
-            'title' => $books->orderBy(
-                'title'
-            ),
+            'title' => $books->orderBy('title'),
 
-            'price_low' => $books->orderBy(
-                'price'
-            ),
+            'price_low' => $books->orderBy('price'),
 
-            'price_high' => $books->orderByDesc(
-                'price'
-            ),
+            'price_high' => $books->orderByDesc('price'),
 
             default => $books->latest(),
         };
 
-        return view(
-            'marketplace.index',
-            [
-                'books' => $books
-                    ->paginate(12)
-                    ->withQueryString(),
+        return view('marketplace.index', [
+            'books' => $books
+                ->paginate(12)
+                ->withQueryString(),
 
-                'categories' => Book::CATEGORIES,
+            'categories' => Book::CATEGORIES,
 
-                'conditions' => Book::CONDITIONS,
+            'conditions' => Book::CONDITIONS,
 
-                'courses' => Book::query()
-                    ->distinct()
-                    ->orderBy('course')
-                    ->pluck('course'),
-            ]
-        );
+            'courses' => Book::query()
+                ->whereNotNull('course')
+                ->where('course', '!=', '')
+                ->distinct()
+                ->orderBy('course')
+                ->pluck('course'),
+        ]);
     }
 
+    /**
+     * Display the book-listing form.
+     */
     public function create(): View
     {
-        return view(
-            'marketplace.create',
-            [
-                'categories' => Book::CATEGORIES,
-                'conditions' => Book::CONDITIONS,
-            ]
-        );
+        return view('marketplace.create', [
+            'categories' => Book::CATEGORIES,
+            'conditions' => Book::CONDITIONS,
+        ]);
     }
 
-    public function store(
-        Request $request
-    ): RedirectResponse {
+    /**
+     * Store a new marketplace book.
+     */
+    public function store(Request $request): RedirectResponse
+    {
         $validated = $request->validate(
-            $this->bookRules(
-                requireImage: true
-            )
+            $this->bookRules(requireImage: true)
         );
 
         try {
             $uploaded = $this->cloudinary->upload(
                 $request->file('image'),
-
-                config(
-                    'services.cloudinary.book_folder'
-                )
+                config('services.cloudinary.book_folder')
             );
         } catch (Throwable $exception) {
             report($exception);
@@ -194,7 +167,9 @@ class BookMarketplaceController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'image' => $exception->getMessage(),
+                    'image' =>
+                        'The book image could not be uploaded: ' .
+                        $exception->getMessage(),
                 ]);
         }
 
@@ -204,11 +179,9 @@ class BookMarketplaceController extends Controller
                     $request,
                     $validated,
                     $uploaded
-                ) {
+                ): Book {
                     return Book::create([
-                        ...$this->bookMetadata(
-                            $validated
-                        ),
+                        ...$this->bookMetadata($validated),
 
                         ...$this->imageMetadata(
                             $request,
@@ -217,98 +190,87 @@ class BookMarketplaceController extends Controller
 
                         'user_id' => auth()->id(),
 
-                        'owner_token' =>
-                            $this->actorToken(
-                                $request
-                            ),
+                        /*
+                         * owner_token was used before authentication.
+                         * Ownership is now controlled by user_id.
+                         */
+                        'owner_token' => null,
 
                         'status' => 'active',
                     ]);
                 }
             );
         } catch (Throwable $exception) {
-            $this->removeUploadedImage(
-                $uploaded
-            );
+            $this->removeUploadedImage($uploaded);
 
-            throw $exception;
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'book' =>
+                        'The book listing could not be saved.',
+                ]);
         }
 
         return redirect()
-            ->route(
-                'marketplace.show',
-                $book
-            )
+            ->route('marketplace.show', $book)
             ->with(
                 'success',
-                '“'.$book->title.'” is now listed in the marketplace.'
+                '“' . $book->title .
+                '” is now listed in the marketplace.'
             );
     }
 
-    public function show(
-        Request $request,
-        Book $book
-    ): View {
-        return view(
-            'marketplace.show',
-            [
-                'book' => $book,
+    /**
+     * Display one marketplace book.
+     */
+    public function show(Book $book): View
+    {
+        $book->loadMissing('seller:id,name,email');
 
-                'isOwner' =>
-                    $this->isBookOwner(
-                        $book,
-                        $request
-                    ),
-            ]
-        );
+        return view('marketplace.show', [
+            'book' => $book,
+
+            'isOwner' => $this->isBookOwner($book),
+        ]);
     }
 
-    public function edit(
-        Request $request,
-        Book $book
-    ): View {
-        $this->ensureBookOwner(
-            $book,
-            $request
-        );
+    /**
+     * Display the edit form.
+     */
+    public function edit(Book $book): View
+    {
+        $this->ensureBookOwner($book);
 
-        return view(
-            'marketplace.edit',
-            [
-                'book' => $book,
-                'categories' => Book::CATEGORIES,
-                'conditions' => Book::CONDITIONS,
-            ]
-        );
+        return view('marketplace.edit', [
+            'book' => $book,
+            'categories' => Book::CATEGORIES,
+            'conditions' => Book::CONDITIONS,
+        ]);
     }
 
+    /**
+     * Update a book listing.
+     */
     public function update(
         Request $request,
         Book $book
     ): RedirectResponse {
-        $this->ensureBookOwner(
-            $book,
-            $request
-        );
+        $this->ensureBookOwner($book);
 
         $validated = $request->validate(
-            $this->bookRules(
-                requireImage: false
-            )
+            $this->bookRules(requireImage: false)
         );
 
         $uploaded = null;
 
         if ($request->hasFile('image')) {
             try {
-                $uploaded =
-                    $this->cloudinary->upload(
-                        $request->file('image'),
-
-                        config(
-                            'services.cloudinary.book_folder'
-                        )
-                    );
+                $uploaded = $this->cloudinary->upload(
+                    $request->file('image'),
+                    config('services.cloudinary.book_folder')
+                );
             } catch (Throwable $exception) {
                 report($exception);
 
@@ -316,14 +278,14 @@ class BookMarketplaceController extends Controller
                     ->withInput()
                     ->withErrors([
                         'image' =>
+                            'The new image could not be uploaded: ' .
                             $exception->getMessage(),
                     ]);
             }
         }
 
         $oldImage = [
-            'public_id' =>
-                $book->image_public_id,
+            'public_id' => $book->image_public_id,
 
             'resource_type' =>
                 $book->image_resource_type,
@@ -336,13 +298,11 @@ class BookMarketplaceController extends Controller
                     $validated,
                     $request,
                     $uploaded
-                ) {
+                ): void {
                     $attributes =
-                        $this->bookMetadata(
-                            $validated
-                        );
+                        $this->bookMetadata($validated);
 
-                    if ($uploaded) {
+                    if ($uploaded !== null) {
                         $attributes = [
                             ...$attributes,
 
@@ -353,22 +313,32 @@ class BookMarketplaceController extends Controller
                         ];
                     }
 
-                    $book->update(
-                        $attributes
-                    );
+                    $book->update($attributes);
                 }
             );
         } catch (Throwable $exception) {
-            if ($uploaded) {
-                $this->removeUploadedImage(
-                    $uploaded
-                );
+            if ($uploaded !== null) {
+                $this->removeUploadedImage($uploaded);
             }
 
-            throw $exception;
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'book' =>
+                        'The book listing could not be updated.',
+                ]);
         }
 
-        if ($uploaded) {
+        /*
+         * Remove the old image only after the database
+         * has been updated successfully.
+         */
+        if (
+            $uploaded !== null &&
+            ! empty($oldImage['public_id'])
+        ) {
             try {
                 $this->cloudinary->destroy(
                     $oldImage['public_id'],
@@ -388,44 +358,38 @@ class BookMarketplaceController extends Controller
         }
 
         return redirect()
-            ->route(
-                'marketplace.show',
-                $book
-            )
+            ->route('marketplace.show', $book)
             ->with(
                 'success',
                 'The book listing was updated.'
             );
     }
 
-    public function destroy(
-        Request $request,
-        Book $book
-    ): RedirectResponse {
-        $this->ensureBookOwner(
-            $book,
-            $request
-        );
+    /**
+     * Delete a book owned by the logged-in student.
+     */
+    public function destroy(Book $book): RedirectResponse
+    {
+        $this->ensureBookOwner($book);
 
-        if (
-            $book->orders()
-                ->where(
-                    'status',
-                    'pending'
-                )
-                ->exists()
-        ) {
+        $hasPendingOrder = $book->orders()
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPendingOrder) {
             return back()->withErrors([
                 'delete' =>
-                    'Handle the pending purchase request before deleting.',
+                    'Handle the pending purchase request before deleting this listing.',
             ]);
         }
 
         try {
-            $this->cloudinary->destroy(
-                $book->image_public_id,
-                $book->image_resource_type
-            );
+            if (! empty($book->image_public_id)) {
+                $this->cloudinary->destroy(
+                    $book->image_public_id,
+                    $book->image_resource_type
+                );
+            }
 
             $book->delete();
         } catch (Throwable $exception) {
@@ -433,179 +397,134 @@ class BookMarketplaceController extends Controller
 
             return back()->withErrors([
                 'delete' =>
-                    'The book could not be deleted. '.
+                    'The book could not be deleted: ' .
                     $exception->getMessage(),
             ]);
         }
 
         return redirect()
-            ->route(
-                'marketplace.manage'
-            )
+            ->route('marketplace.manage')
             ->with(
                 'success',
                 'The book listing was deleted.'
             );
     }
 
-    public function manage(
-        Request $request
-    ): View {
-        $token = $this->actorToken(
-            $request
-        );
-
+    /**
+     * Display the logged-in student's selling
+     * and buying activity.
+     */
+    public function manage(): View
+    {
         $userId = auth()->id();
 
         $sellingBooks = Book::query()
             ->with([
-                'orders' =>
-                    fn ($query) =>
-                        $query->latest(),
+                'orders' => function ($query) {
+                    $query
+                        ->with('buyer:id,name,email')
+                        ->latest();
+                },
             ])
-            ->where(
-                function (
-                    Builder $query
-                ) use (
-                    $token,
-                    $userId
-                ) {
-                    $query->where(
-                        'owner_token',
-                        $token
-                    );
-
-                    if ($userId) {
-                        $query->orWhere(
-                            'user_id',
-                            $userId
-                        );
-                    }
-                }
-            )
+            ->where('user_id', $userId)
             ->latest()
             ->get();
 
-        $buyingOrders =
-            BookOrder::query()
-                ->with('book')
-                ->where(
-                    function (
-                        Builder $query
-                    ) use (
-                        $token,
-                        $userId
-                    ) {
-                        $query->where(
-                            'buyer_token',
-                            $token
-                        );
+        $buyingOrders = BookOrder::query()
+            ->with([
+                'book',
+                'book.seller:id,name,email',
+            ])
+            ->where('buyer_id', $userId)
+            ->latest()
+            ->get();
 
-                        if ($userId) {
-                            $query->orWhere(
-                                'buyer_id',
-                                $userId
-                            );
-                        }
-                    }
-                )
-                ->latest()
-                ->get();
-
-        return view(
-            'marketplace.manage',
-            [
-                'sellingBooks' =>
-                    $sellingBooks,
-
-                'buyingOrders' =>
-                    $buyingOrders,
-            ]
-        );
+        return view('marketplace.manage', [
+            'sellingBooks' => $sellingBooks,
+            'buyingOrders' => $buyingOrders,
+        ]);
     }
 
+    /**
+     * Send a purchase request for a book.
+     */
     public function purchase(
         Request $request,
         Book $book
     ): RedirectResponse {
-        if (
-            $this->isBookOwner(
-                $book,
-                $request
-            )
-        ) {
+        if ($this->isBookOwner($book)) {
             return back()->withErrors([
                 'purchase' =>
                     'You cannot buy your own book.',
             ]);
         }
 
-        $validated =
-            $request->validate([
-                'buyer_name' => [
-                    'required',
-                    'string',
-                    'max:120',
-                ],
+        $validated = $request->validate([
+            'buyer_phone' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
 
-                'buyer_email' => [
-                    'required',
-                    'email',
-                    'max:150',
-                ],
-
-                'buyer_phone' => [
-                    'nullable',
-                    'string',
-                    'max:30',
-                ],
-
-                'message' => [
-                    'nullable',
-                    'string',
-                    'max:1000',
-                ],
-            ]);
+            'message' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+        ]);
 
         DB::transaction(
             function () use (
                 $request,
                 $book,
                 $validated
-            ) {
-                $lockedBook =
-                    Book::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $book->id
-                        );
+            ): void {
+                $lockedBook = Book::query()
+                    ->lockForUpdate()
+                    ->findOrFail($book->id);
 
                 if (
-                    $lockedBook->status
-                    !== 'active'
+                    (int) $lockedBook->user_id ===
+                    (int) auth()->id()
                 ) {
+                    throw ValidationException::withMessages([
+                        'purchase' =>
+                            'You cannot buy your own book.',
+                    ]);
+                }
+
+                if ($lockedBook->status !== 'active') {
                     throw ValidationException::withMessages([
                         'purchase' =>
                             'This book is no longer available.',
                     ]);
                 }
 
-                $lockedBook
-                    ->orders()
-                    ->create([
-                        ...$validated,
+                $lockedBook->orders()->create([
+                    'buyer_id' => auth()->id(),
 
-                        'buyer_id' =>
-                            auth()->id(),
+                    /*
+                     * buyer_token was used before authentication.
+                     * The buyer is now identified by buyer_id.
+                     */
+                    'buyer_token' => null,
 
-                        'buyer_token' =>
-                            $this->actorToken(
-                                $request
-                            ),
+                    'buyer_name' =>
+                        auth()->user()->name,
 
-                        'status' =>
-                            'pending',
-                    ]);
+                    'buyer_email' =>
+                        auth()->user()->email,
+
+                    'buyer_phone' =>
+                        $validated['buyer_phone']
+                        ?? auth()->user()->phone,
+
+                    'message' =>
+                        $validated['message']
+                        ?? null,
+
+                    'status' => 'pending',
+                ]);
 
                 $lockedBook->update([
                     'status' => 'reserved',
@@ -614,51 +533,50 @@ class BookMarketplaceController extends Controller
         );
 
         return redirect()
-            ->route(
-                'marketplace.manage'
-            )
+            ->route('marketplace.manage')
             ->with(
                 'success',
                 'Your purchase request was sent to the seller.'
             );
     }
 
+    /**
+     * Seller accepts a purchase request.
+     */
     public function acceptOrder(
-        Request $request,
         BookOrder $order
     ): RedirectResponse {
-        $order->loadMissing(
-            'book'
+        $order->loadMissing('book');
+
+        abort_if(
+            $order->book === null,
+            404,
+            'The related book listing no longer exists.'
         );
 
-        $this->ensureBookOwner(
-            $order->book,
-            $request
-        );
+        $this->ensureBookOwner($order->book);
 
         DB::transaction(
-            function () use ($order) {
-                $lockedOrder =
-                    BookOrder::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $order->id
-                        );
+            function () use ($order): void {
+                $lockedOrder = BookOrder::query()
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
 
-                $lockedBook =
-                    Book::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $lockedOrder->book_id
-                        );
+                $lockedBook = Book::query()
+                    ->lockForUpdate()
+                    ->findOrFail($lockedOrder->book_id);
 
-                if (
-                    $lockedOrder->status
-                    !== 'pending'
-                ) {
+                abort_unless(
+                    (int) $lockedBook->user_id ===
+                    (int) auth()->id(),
+                    403,
+                    'You cannot manage another student’s purchase request.'
+                );
+
+                if ($lockedOrder->status !== 'pending') {
                     throw ValidationException::withMessages([
                         'order' =>
-                            'This request has already been handled.',
+                            'This purchase request has already been handled.',
                     ]);
                 }
 
@@ -675,46 +593,47 @@ class BookMarketplaceController extends Controller
 
         return back()->with(
             'success',
-            'Purchase request accepted.'
+            'Purchase request accepted. The book is now marked as sold.'
         );
     }
 
+    /**
+     * Seller rejects a purchase request.
+     */
     public function rejectOrder(
-        Request $request,
         BookOrder $order
     ): RedirectResponse {
-        $order->loadMissing(
-            'book'
+        $order->loadMissing('book');
+
+        abort_if(
+            $order->book === null,
+            404,
+            'The related book listing no longer exists.'
         );
 
-        $this->ensureBookOwner(
-            $order->book,
-            $request
-        );
+        $this->ensureBookOwner($order->book);
 
         DB::transaction(
-            function () use ($order) {
-                $lockedOrder =
-                    BookOrder::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $order->id
-                        );
+            function () use ($order): void {
+                $lockedOrder = BookOrder::query()
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
 
-                $lockedBook =
-                    Book::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $lockedOrder->book_id
-                        );
+                $lockedBook = Book::query()
+                    ->lockForUpdate()
+                    ->findOrFail($lockedOrder->book_id);
 
-                if (
-                    $lockedOrder->status
-                    !== 'pending'
-                ) {
+                abort_unless(
+                    (int) $lockedBook->user_id ===
+                    (int) auth()->id(),
+                    403,
+                    'You cannot manage another student’s purchase request.'
+                );
+
+                if ($lockedOrder->status !== 'pending') {
                     throw ValidationException::withMessages([
                         'order' =>
-                            'This request has already been handled.',
+                            'This purchase request has already been handled.',
                     ]);
                 }
 
@@ -731,42 +650,39 @@ class BookMarketplaceController extends Controller
 
         return back()->with(
             'success',
-            'Request declined. The book is available again.'
+            'Purchase request rejected. The book is available again.'
         );
     }
 
+    /**
+     * Buyer cancels their own pending purchase request.
+     */
     public function cancelOrder(
-        Request $request,
         BookOrder $order
     ): RedirectResponse {
-        $this->ensureOrderBuyer(
-            $order,
-            $request
-        );
+        $this->ensureOrderBuyer($order);
 
         DB::transaction(
-            function () use ($order) {
-                $lockedOrder =
-                    BookOrder::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $order->id
-                        );
+            function () use ($order): void {
+                $lockedOrder = BookOrder::query()
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
 
-                $lockedBook =
-                    Book::query()
-                        ->lockForUpdate()
-                        ->findOrFail(
-                            $lockedOrder->book_id
-                        );
+                abort_unless(
+                    (int) $lockedOrder->buyer_id ===
+                    (int) auth()->id(),
+                    403,
+                    'You cannot cancel another student’s purchase request.'
+                );
 
-                if (
-                    $lockedOrder->status
-                    !== 'pending'
-                ) {
+                $lockedBook = Book::query()
+                    ->lockForUpdate()
+                    ->findOrFail($lockedOrder->book_id);
+
+                if ($lockedOrder->status !== 'pending') {
                     throw ValidationException::withMessages([
                         'order' =>
-                            'Only pending requests can be cancelled.',
+                            'Only pending purchase requests can be cancelled.',
                     ]);
                 }
 
@@ -787,14 +703,23 @@ class BookMarketplaceController extends Controller
         );
     }
 
-    public function relist(
-        Request $request,
-        Book $book
-    ): RedirectResponse {
-        $this->ensureBookOwner(
-            $book,
-            $request
-        );
+    /**
+     * Make a sold or unavailable book active again.
+     */
+    public function relist(Book $book): RedirectResponse
+    {
+        $this->ensureBookOwner($book);
+
+        $hasPendingOrder = $book->orders()
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPendingOrder) {
+            return back()->withErrors([
+                'relist' =>
+                    'You cannot relist this book while a purchase request is pending.',
+            ]);
+        }
 
         $book->update([
             'status' => 'active',
@@ -806,6 +731,9 @@ class BookMarketplaceController extends Controller
         );
     }
 
+    /**
+     * Validation rules for creating and editing books.
+     */
     private function bookRules(
         bool $requireImage
     ): array {
@@ -837,18 +765,13 @@ class BookMarketplaceController extends Controller
 
             'category' => [
                 'required',
-                Rule::in(
-                    Book::CATEGORIES
-                ),
+                Rule::in(Book::CATEGORIES),
             ],
 
             'condition' => [
                 'required',
-
                 Rule::in(
-                    array_keys(
-                        Book::CONDITIONS
-                    )
+                    array_keys(Book::CONDITIONS)
                 ),
             ],
 
@@ -856,18 +779,6 @@ class BookMarketplaceController extends Controller
                 'nullable',
                 'string',
                 'max:2000',
-            ],
-
-            'seller_name' => [
-                'required',
-                'string',
-                'max:120',
-            ],
-
-            'seller_email' => [
-                'required',
-                'email',
-                'max:150',
             ],
 
             'seller_phone' => [
@@ -891,50 +802,52 @@ class BookMarketplaceController extends Controller
         ];
     }
 
+    /**
+     * Prepare book information for database saving.
+     */
     private function bookMetadata(
         array $validated
     ): array {
         return [
-            'title' =>
-                $validated['title'],
+            'title' => $validated['title'],
 
-            'author' =>
-                $validated['author'],
+            'author' => $validated['author'],
 
-            'price' =>
-                $validated['price'],
+            'price' => $validated['price'],
 
-            'course' =>
-                $validated['course'],
+            'course' => $validated['course'],
 
-            'category' =>
-                $validated['category'],
+            'category' => $validated['category'],
 
-            'condition' =>
-                $validated['condition'],
+            'condition' => $validated['condition'],
 
             'description' =>
-                $validated['description']
-                ?? null,
+                $validated['description'] ?? null,
 
+            /*
+             * Seller name and email always come from the
+             * logged-in student account.
+             */
             'seller_name' =>
-                $validated['seller_name'],
+                auth()->user()->name,
 
             'seller_email' =>
-                $validated['seller_email'],
+                auth()->user()->email,
 
             'seller_phone' =>
                 $validated['seller_phone']
-                ?? null,
+                ?? auth()->user()->phone,
         ];
     }
 
+    /**
+     * Prepare Cloudinary image information.
+     */
     private function imageMetadata(
         Request $request,
         array $uploaded
     ): array {
-        $file =
-            $request->file('image');
+        $file = $request->file('image');
 
         return [
             'original_image_name' =>
@@ -959,106 +872,52 @@ class BookMarketplaceController extends Controller
                 $file->getMimeType(),
 
             'image_bytes' =>
-                (int) $uploaded['bytes'],
+                (int) ($uploaded['bytes'] ?? $file->getSize()),
         ];
     }
 
-    private function actorToken(
-        Request $request
-    ): string {
-        $token =
-            $request->session()
-                ->get(
-                    'marketplace_actor_token'
-                );
-
-        if (
-            ! is_string($token)
-            || strlen($token) !== 64
-        ) {
-            $token = Str::random(64);
-
-            $request->session()->put(
-                'marketplace_actor_token',
-                $token
-            );
-        }
-
-        return $token;
+    /**
+     * Check whether the current student owns the book.
+     */
+    private function isBookOwner(Book $book): bool
+    {
+        return auth()->check()
+            && $book->user_id !== null
+            && (int) $book->user_id ===
+                (int) auth()->id();
     }
 
-    private function isBookOwner(
-        Book $book,
-        Request $request
-    ): bool {
-        if (
-            auth()->check()
-            && (int) $book->user_id
-                === (int) auth()->id()
-        ) {
-            return true;
-        }
-
-        return is_string(
-            $book->owner_token
-        )
-            && hash_equals(
-                $book->owner_token,
-
-                $this->actorToken(
-                    $request
-                )
-            );
-    }
-
-    private function ensureBookOwner(
-        Book $book,
-        Request $request
-    ): void {
+    /**
+     * Stop students from managing another seller's book.
+     */
+    private function ensureBookOwner(Book $book): void
+    {
         abort_unless(
-            $this->isBookOwner(
-                $book,
-                $request
-            ),
-
+            $this->isBookOwner($book),
             403,
-
-            'You cannot manage another student’s listing.'
+            'You cannot manage another student’s book listing.'
         );
     }
 
+    /**
+     * Stop students from managing another buyer's order.
+     */
     private function ensureOrderBuyer(
-        BookOrder $order,
-        Request $request
+        BookOrder $order
     ): void {
-        $isBuyer =
-            auth()->check()
-            && (int) $order->buyer_id
-                === (int) auth()->id();
-
-        if (! $isBuyer) {
-            $isBuyer =
-                is_string(
-                    $order->buyer_token
-                )
-                && hash_equals(
-                    $order->buyer_token,
-
-                    $this->actorToken(
-                        $request
-                    )
-                );
-        }
-
         abort_unless(
-            $isBuyer,
-
+            auth()->check()
+            && $order->buyer_id !== null
+            && (int) $order->buyer_id ===
+                (int) auth()->id(),
             403,
-
-            'You cannot manage another buyer’s request.'
+            'You cannot manage another buyer’s purchase request.'
         );
     }
 
+    /**
+     * Remove an uploaded Cloudinary image.
+     */
     private function removeUploadedImage(
         array $uploaded
     ): void {

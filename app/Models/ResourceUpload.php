@@ -9,6 +9,7 @@ class ResourceUpload extends Model
 {
     protected $fillable = [
         'resource_request_id',
+        'user_id',
         'uploader_name',
         'title',
         'file_name',
@@ -17,11 +18,18 @@ class ResourceUpload extends Model
         'resource_type',
     ];
 
-
     public function resourceRequest(): BelongsTo
     {
         return $this->belongsTo(
             ResourceRequest::class
+        );
+    }
+
+    public function uploader(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'user_id'
         );
     }
 }

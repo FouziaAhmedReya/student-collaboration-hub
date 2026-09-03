@@ -330,7 +330,9 @@
                     aria-hidden="true"
                 >
                     <path
-                        d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"
+                        d="M7 3.5h7l4 4V20a1 1 0 0 1-1
+                           1H7a1 1 0 0 1-1-1V4.5a1
+                           1 0 0 1 1-1Z"
                         stroke-linejoin="round"
                     />
 
@@ -471,34 +473,45 @@
                                     </h2>
                                 </div>
 
-                                <a
-                                    href="{{ route(
-                                        'notes.edit',
-                                        $note
-                                    ) }}"
-                                    aria-label="Edit {{ $note->title }}"
-                                    class="grid size-9 shrink-0
-                                           place-items-center rounded-lg
-                                           text-slate-400 transition
-                                           hover:bg-slate-100
-                                           hover:text-slate-900"
-                                >
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        class="size-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        aria-hidden="true"
+                                {{--
+                                    Only the owner of this note can
+                                    see the Edit button.
+                                --}}
+                                @if (
+                                    (int) $note->user_id
+                                    === (int) auth()->id()
+                                )
+                                    <a
+                                        href="{{ route(
+                                            'notes.edit',
+                                            $note
+                                        ) }}"
+                                        aria-label="Edit {{ $note->title }}"
+                                        class="grid size-9 shrink-0
+                                               place-items-center rounded-lg
+                                               text-slate-400 transition
+                                               hover:bg-slate-100
+                                               hover:text-slate-900"
                                     >
-                                        <path
-                                            d="m4 20 4.2-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"
-                                            stroke-linejoin="round"
-                                        />
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            class="size-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            aria-hidden="true"
+                                        >
+                                            <path
+                                                d="m4 20 4.2-1 10-10a2.1
+                                                   2.1 0 0 0-3-3l-10
+                                                   10L4 20Z"
+                                                stroke-linejoin="round"
+                                            />
 
-                                        <path d="m13.8 7.5 3 3"/>
-                                    </svg>
-                                </a>
+                                            <path d="m13.8 7.5 3 3"/>
+                                        </svg>
+                                    </a>
+                                @endif
                             </div>
 
                             <p class="mt-2 text-sm leading-6 text-slate-600">

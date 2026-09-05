@@ -24,21 +24,7 @@ class ProfileSkillController extends Controller
      */
     protected function getActiveUser(): User
     {
-        if (Auth::check()) {
-            return Auth::user();
-        }
-
-        $user = User::first();
-        if (!$user) {
-            $user = User::create([
-                'name' => 'Rayhan Student',
-                'email' => 'rayhan.student@example.com',
-                'password' => bcrypt('password123'),
-            ]);
-        }
-
-        Auth::login($user);
-        return $user;
+        return Auth::user();
     }
 
     /**
@@ -68,7 +54,7 @@ class ProfileSkillController extends Controller
     /**
      * Display the Student Profile dashboard.
      */
-    public function index(Request $request): View
+    public function index(): View
     {
         $user = $this->getActiveUser();
         $profile = $this->getActiveProfile();
@@ -82,69 +68,14 @@ class ProfileSkillController extends Controller
 
         $completionPercentage = $profile->completion_percentage;
         $completionDetails = $profile->completion_details;
+        $departmentSuggestions = DepartmentInterest::forDepartment($profile->department ?? 'Computer Science & Engineering')->pluck('name');
 
-        // On-Demand Gemini AI Event Recommendations for Profile
-        $aiEventRecommendations = null;
-        $recommendEvents = $request->boolean('recommend_events') || $request->query('recommend_events') == '1';
-        $geminiKey = config('services.gemini.api_key') ?: env('GOOGLE_API_KEY') ?: env('GEMINI_API_KEY');
-
-        if ($recommendEvents && $geminiKey) {
-            $allEvents = \App\Models\Event::orderBy('event_date', 'asc')->get();
-            if ($allEvents->count() > 0) {
-                $skillsText = $profile->skills->pluck('name')->implode(', ');
-                $interestsText = $profile->interests->pluck('name')->implode(', ');
-                $skillsText = !empty($skillsText) ? $skillsText : 'Python, Web Development';
-                $interestsText = !empty($interestsText) ? $interestsText : 'Artificial Intelligence, Hackathons';
-                $deptText = !empty($profile->department) ? $profile->department : 'Computer Science';
-                $bioText = (!empty($profile->bio) || !empty($profile->about_me)) ? " Bio: " . trim(($profile->about_me ?? '') . ' ' . ($profile->bio ?? '')) : '';
-
-                $studentContext = "Student Name: {$user->name}\nDepartment: {$deptText}\nSkills: {$skillsText}\nInterests: {$interestsText}{$bioText}";
-
-                $eventRoster = implode("\n\n", $allEvents->map(function ($e) {
-                    $dateStr = $e->event_date ? $e->event_date->format('M d, Y @ h:i A') : 'TBA';
-                    return "Event ID: {$e->id}\nTitle: {$e->title}\nType: {$e->type}\nTarget Skills: {$e->target_skills}\nDate & Location: {$dateStr} | {$e->location}\nDescription: {$e->description}";
-                })->toArray());
-
-                $prompt = "You are an AI Academic Career & Event Advisor. Evaluate the following upcoming events, workshops, seminars, and hackathons for this student:\n\n" .
-                    "{$studentContext}\n\n" .
-                    "Upcoming Events:\n{$eventRoster}\n\n" .
-                    "Provide clean, humanized, minimal markdown recommendations:\n" .
-                    "# 🚀 Top Recommended Events for Your Profile\n" .
-                    "## 1. Primary Recommended Workshop / Event\n" .
-                    "- Explain in 1-2 friendly sentences why this event fits their skills.\n" .
-                    "## 2. Recommended Hackathon / Seminar\n" .
-                    "- Explain the learning benefits.\n\n" .
-                    "Return ONLY clean, minimal markdown.";
-
-                $models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
-                foreach ($models as $model) {
-                    try {
-                        $response = \Illuminate\Support\Facades\Http::withoutVerifying()
-                            ->timeout(8)
-                            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$geminiKey}", [
-                                'contents' => [['parts' => [['text' => $prompt]]]]
-                            ]);
-
-                        if ($response->successful()) {
-                            $text = trim($response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '');
-                            if (!empty($text)) {
-                                $aiEventRecommendations = $text;
-                                break;
-                            }
-                        }
-                    } catch (\Throwable $e) {
-                        // Failover
-                    }
-                }
-            }
-        }
-
-        return view('modules.rayhan.profile-skills.index', [
+        return view('profile.show', [
             'user' => $user,
             'profile' => $profile,
             'completionPercentage' => $completionPercentage,
             'completionDetails' => $completionDetails,
-            'aiEventRecommendations' => $aiEventRecommendations,
+            'departmentSuggestions' => $departmentSuggestions,
         ]);
     }
 
@@ -165,7 +96,7 @@ class ProfileSkillController extends Controller
             'Business Administration',
         ];
 
-        return view('modules.rayhan.profile-skills.edit', [
+        return view('profile.edit', [
             'user' => $user,
             'profile' => $profile,
             'departments' => $departments,
@@ -182,9 +113,10 @@ class ProfileSkillController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'department' => ['required', 'string', 'max:120'],
-            'semester' => ['required', 'string', 'max:50'],
+            'department' => ['nullable', 'string', 'max:120'],
+            'semester' => ['nullable', 'string', 'max:50'],
             'university' => ['nullable', 'string', 'max:150'],
+            'joined_date' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
             'bio' => ['nullable', 'string', 'max:1500'],
             'about_me' => ['nullable', 'string', 'max:1500'],
@@ -192,32 +124,78 @@ class ProfileSkillController extends Controller
             'preferred_location_address' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ]);
 
         $bio = $validated['bio'] ?? $validated['about_me'] ?? null;
         $aboutMe = $validated['about_me'] ?? $validated['bio'] ?? null;
+
+        if ($request->hasFile('profile_photo')) {
+            if ($profile->profile_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($profile->profile_photo);
+            }
+            $validated['profile_photo'] = $request->file('profile_photo')->store('profile-photos', 'public');
+        }
 
         DB::transaction(function () use ($user, $profile, $validated, $bio, $aboutMe) {
             $user->update([
                 'name' => $validated['name'],
             ]);
 
-            $profile->update([
-                'department' => $validated['department'],
-                'semester' => $validated['semester'],
+            $profileUpdate = [
+                'department' => $validated['department'] ?? null,
+                'semester' => $validated['semester'] ?? null,
                 'university' => $validated['university'] ?? null,
+                'joined_date' => $validated['joined_date'] ?? null,
                 'phone' => $validated['phone'] ?? null,
                 'bio' => $bio,
                 'about_me' => $aboutMe,
                 'preferred_location_name' => $validated['preferred_location_name'] ?? null,
                 'preferred_location_address' => $validated['preferred_location_address'] ?? null,
-                'latitude' => $validated['latitude'] !== null ? (float) $validated['latitude'] : null,
-                'longitude' => $validated['longitude'] !== null ? (float) $validated['longitude'] : null,
-            ]);
+                'latitude' => (isset($validated['latitude']) && $validated['latitude'] !== null) ? (float) $validated['latitude'] : ($validated['latitude'] ?? null),
+                'longitude' => (isset($validated['longitude']) && $validated['longitude'] !== null) ? (float) $validated['longitude'] : ($validated['longitude'] ?? null),
+            ];
+
+            if (isset($validated['profile_photo'])) {
+                $profileUpdate['profile_photo'] = $validated['profile_photo'];
+            }
+
+            $profile->update($profileUpdate);
         });
 
         return redirect()->route('profile.index')
             ->with('success', 'Profile information updated successfully.');
+    }
+
+    /**
+     * Update preferred study location coordinates and address.
+     */
+    public function updateLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'preferred_location_name' => ['nullable', 'string', 'max:255'],
+            'preferred_location_address' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        $profile = $this->getActiveProfile();
+
+        $profile->update([
+            'preferred_location_name' => $validated['preferred_location_name'] ?? null,
+            'preferred_location_address' => $validated['preferred_location_address'] ?? null,
+            'latitude' => (isset($validated['latitude']) && $validated['latitude'] !== null) ? (float) $validated['latitude'] : null,
+            'longitude' => (isset($validated['longitude']) && $validated['longitude'] !== null) ? (float) $validated['longitude'] : null,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Location updated successfully',
+                'profile' => $profile,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Preferred study location updated successfully.');
     }
 
     /* -------------------------------------------------------------------------- */

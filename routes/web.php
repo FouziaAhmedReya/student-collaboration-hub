@@ -19,6 +19,8 @@ use App\Http\Controllers\Modules\Tuli\ProgressDashboardController;
 use App\Http\Controllers\Modules\Tuli\ProjectIdeaGeneratorController;
 use App\Http\Controllers\Modules\Tuli\TeamRecommendationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\GroupJoinRequestController;
+use App\Http\Controllers\Modules\Rayhan\ProjectTeamFinderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -929,6 +931,14 @@ Route::prefix('profile')
             ]
         )->name('update');
 
+        Route::put(
+            '/location',
+            [
+                ProfileSkillController::class,
+                'updateLocation',
+            ]
+        )->name('location');
+
         /*
         |--------------------------------------------------------------------------
         | Skills
@@ -1123,6 +1133,22 @@ Route::middleware(['auth'])->group(function () {
                 'leave'
             )->name('leave');
         });
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Study Group Detail Page & Join Requests
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/groups/{group}', [GroupJoinRequestController::class, 'show'])
+        ->name('groups.show');
+
+    Route::post('/groups/{group}/join-request', [GroupJoinRequestController::class, 'sendRequest'])
+        ->name('groups.join-request.store');
+
+    Route::delete('/groups/{group}/join-request', [GroupJoinRequestController::class, 'cancelRequest'])
+        ->name('groups.join-request.cancel');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -1327,3 +1353,27 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ]
     )->name('admin.content.resource-uploads.destroy');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Rayhan Module - Project Team Finder
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])
+    ->controller(ProjectTeamFinderController::class)
+    ->prefix('project-recruitments')
+    ->name('project-recruitments.')
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{project}', 'show')->name('show');
+        Route::get('/{project}/edit', 'edit')->name('edit');
+        Route::put('/{project}', 'update')->name('update');
+        Route::delete('/{project}', 'destroy')->name('destroy');
+        Route::post('/{project}/join', 'requestJoin')->name('join.store');
+        Route::delete('/{project}/join', 'cancelRequest')->name('join.cancel');
+        Route::post('/{project}/members/{member}/approve', 'approveRequest')->name('members.approve');
+        Route::post('/{project}/members/{member}/reject', 'rejectRequest')->name('members.reject');
+    });

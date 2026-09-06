@@ -1,5 +1,48 @@
 @extends('layouts.app')
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+    <style>
+        header, header * {
+            text-decoration: none !important;
+        }
+        header a {
+            color: inherit !important;
+            font-family: inherit !important;
+        }
+        .hub-card { background: #fff; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.5rem; }
+        .btn-hub-primary { background-color: #2563eb; color: #fff; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-primary:hover { background-color: #1d4ed8; color: #fff; }
+        .btn-hub-outline { background-color: transparent; color: #2563eb; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-outline:hover { background-color: #eff6ff; }
+    
+        header a {
+            text-decoration: none !important;
+            color: rgb(71 85 105);
+        }
 
+        header a:hover {
+            color: rgb(15 23 42);
+        }
+
+        header a.text-blue-700 {
+            color: rgb(29 78 216) !important;
+        }
+
+        header a.text-red-600 {
+            color: rgb(220 38 38) !important;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+@endpush
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Back Link -->

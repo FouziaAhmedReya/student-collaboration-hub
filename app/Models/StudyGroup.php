@@ -97,6 +97,7 @@ class StudyGroup extends Model
         if (!$user) {
             return false;
         }
+
         return (int) $this->creator_id === (int) $user->id;
     }
 
@@ -155,7 +156,18 @@ class StudyGroup extends Model
      */
     public function activeMembersCount(): int
     {
-        return $this->memberships()->where('status', 'active')->count();
+        return $this->memberships()
+            ->where('status', 'active')
+            ->count();
+    }
+
+
+    /**
+     * Get pending member count.
+     */
+    public function pendingMembersCount(): int
+    {
+        return $this->memberships()->where('status', 'pending')->count();
     }
 
     /**

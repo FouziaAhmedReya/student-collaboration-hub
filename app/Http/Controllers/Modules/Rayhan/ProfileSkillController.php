@@ -82,6 +82,7 @@ class ProfileSkillController extends Controller
 
         $completionPercentage = $profile->completion_percentage;
         $completionDetails = $profile->completion_details;
+        $departmentSuggestions = DepartmentInterest::forDepartment($profile->department ?? 'Computer Science & Engineering')->pluck('name');
 
         // On-Demand Gemini AI Event Recommendations for Profile
         $aiEventRecommendations = null;
@@ -139,11 +140,12 @@ class ProfileSkillController extends Controller
             }
         }
 
-        return view('modules.rayhan.profile-skills.index', [
+        return view('profile.show', [
             'user' => $user,
             'profile' => $profile,
             'completionPercentage' => $completionPercentage,
             'completionDetails' => $completionDetails,
+            'departmentSuggestions' => $departmentSuggestions,
             'aiEventRecommendations' => $aiEventRecommendations,
         ]);
     }
@@ -192,17 +194,25 @@ class ProfileSkillController extends Controller
             'preferred_location_address' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ]);
 
         $bio = $validated['bio'] ?? $validated['about_me'] ?? null;
         $aboutMe = $validated['about_me'] ?? $validated['bio'] ?? null;
+
+        if ($request->hasFile('profile_photo')) {
+            if ($profile->profile_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($profile->profile_photo);
+            }
+            $validated['profile_photo'] = $request->file('profile_photo')->store('profile-photos', 'public');
+        }
 
         DB::transaction(function () use ($user, $profile, $validated, $bio, $aboutMe) {
             $user->update([
                 'name' => $validated['name'],
             ]);
 
-            $profile->update([
+            $profileUpdate = [
                 'department' => $validated['department'],
                 'semester' => $validated['semester'],
                 'university' => $validated['university'] ?? null,
@@ -211,13 +221,50 @@ class ProfileSkillController extends Controller
                 'about_me' => $aboutMe,
                 'preferred_location_name' => $validated['preferred_location_name'] ?? null,
                 'preferred_location_address' => $validated['preferred_location_address'] ?? null,
-                'latitude' => $validated['latitude'] !== null ? (float) $validated['latitude'] : null,
-                'longitude' => $validated['longitude'] !== null ? (float) $validated['longitude'] : null,
-            ]);
+                'latitude' => isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+                'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
+            ];
+
+            if (isset($validated['profile_photo'])) {
+                $profileUpdate['profile_photo'] = $validated['profile_photo'];
+            }
+
+            $profile->update($profileUpdate);
         });
 
         return redirect()->route('profile.index')
             ->with('success', 'Profile information updated successfully.');
+    }
+
+    /**
+     * Update preferred study location coordinates and address.
+     */
+    public function updateLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'preferred_location_name' => ['nullable', 'string', 'max:255'],
+            'preferred_location_address' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        $profile = $this->getActiveProfile();
+
+        $profile->update([
+            'preferred_location_name' => $validated['preferred_location_name'] ?? null,
+            'preferred_location_address' => $validated['preferred_location_address'] ?? null,
+            'latitude' => (isset($validated['latitude']) && $validated['latitude'] !== null) ? (float) $validated['latitude'] : null,
+            'longitude' => (isset($validated['longitude']) && $validated['longitude'] !== null) ? (float) $validated['longitude'] : null,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Location updated successfully',
+                'profile' => $profile,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Preferred study location updated successfully.');
     }
 
     /* -------------------------------------------------------------------------- */

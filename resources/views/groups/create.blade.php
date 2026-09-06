@@ -1,5 +1,52 @@
 @extends('layouts.app')
 
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+    <style>
+        header, header * {
+            text-decoration: none !important;
+        }
+        header a {
+            color: inherit !important;
+            font-family: inherit !important;
+        }
+        .hub-card { background: #fff; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.5rem; }
+        .btn-hub-primary { background-color: #2563eb; color: #fff; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-primary:hover { background-color: #1d4ed8; color: #fff; }
+        .btn-hub-outline { background-color: transparent; color: #2563eb; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-outline:hover { background-color: #eff6ff; }
+    
+        header a {
+            text-decoration: none !important;
+            color: rgb(71 85 105);
+        }
+
+        header a:hover {
+            color: rgb(15 23 42);
+        }
+
+        header a.text-blue-700 {
+            color: rgb(29 78 216) !important;
+        }
+
+        header a.text-red-600 {
+            color: rgb(220 38 38) !important;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+    <script src="{{ asset('js/hub-map.js') }}"></script>
+
+@endpush
+
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Back Link -->
@@ -213,21 +260,9 @@
                     </div>
 
                     <!-- Map Preview Container -->
-                    <div class="rounded-3 overflow-hidden border mb-3" style="height: 200px; background-color: #f1f5f9; position: relative;">
-                        <div id="mapPreviewContainer" class="w-100 h-100">
-                            @if(env('GOOGLE_MAPS_API_KEY'))
-                                <div id="googleMapCanvas" style="width: 100%; height: 100%;"></div>
-                            @else
-                                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-3" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
-                                    <i class="bi bi-geo-alt-fill text-danger fs-1 mb-2"></i>
-                                    <h6 class="fw-bold text-dark mb-1" id="previewLocationNameDisplay">{{ old('location_name', 'BRAC University Library') }}</h6>
-                                    <p class="small text-secondary mb-0" id="previewLocationAddressDisplay">{{ old('location_address', 'UB02 Building, 3rd Floor, Mohakhali, Dhaka') }}</p>
-                                    <span class="badge bg-white text-secondary border mt-2">Interactive Location Selected</span>
-                                </div>
-                            @endif
-                        </div>
+                    <div class="rounded-3 overflow-hidden border mb-3" style="height: 200px; position: relative;">
+                        <div id="mapPreviewContainer" class="w-100 h-100"></div>
                     </div>
-
                     <!-- Location Name Input -->
                     <div class="mb-3">
                         <label for="location_name" class="form-label fw-semibold text-dark small">
@@ -316,23 +351,29 @@
         }
     }
 
+    let groupPickerInstance = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        groupPickerInstance = HubMap.initPickerMap({
+            containerId: 'mapPreviewContainer',
+            latInputId: 'latitude',
+            lngInputId: 'longitude',
+            nameInputId: 'location_name',
+            addressInputId: 'location_address',
+            initialLat: parseFloat(document.getElementById('latitude').value) || 23.7806,
+            initialLng: parseFloat(document.getElementById('longitude').value) || 90.4068
+        });
+    });
+
     function setLocationPreset(name, address, lat, lng) {
         document.getElementById('location_name').value = name;
         document.getElementById('location_address').value = address;
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lng;
-        updateDisplayPreview();
-    }
 
-    function updateDisplayPreview() {
-        const name = document.getElementById('location_name').value || 'Selected Location';
-        const address = document.getElementById('location_address').value || 'Location Address';
-
-        const nameDisplay = document.getElementById('previewLocationNameDisplay');
-        const addrDisplay = document.getElementById('previewLocationAddressDisplay');
-
-        if (nameDisplay) nameDisplay.innerText = name;
-        if (addrDisplay) addrDisplay.innerText = address;
+        if (groupPickerInstance) {
+            groupPickerInstance.setLocation(lat, lng);
+        }
     }
 </script>
 @endpush

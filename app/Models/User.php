@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -36,6 +38,7 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+
     /**
      * User profile relationship.
      */
@@ -43,6 +46,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(Profile::class);
     }
+
 
     /**
      * Notes uploaded by this student.
@@ -52,6 +56,7 @@ class User extends Authenticatable
         return $this->hasMany(Note::class);
     }
 
+
     /**
      * Book listings created by this student.
      */
@@ -60,8 +65,13 @@ class User extends Authenticatable
         return $this->hasMany(Book::class);
     }
 
+    public function booksForSale()
+    {
+        return $this->hasMany(Book::class);
+    }
+
     /**
-     * Book-purchase requests made by this student.
+     * Book purchase requests made by this student.
      */
     public function bookOrders()
     {
@@ -71,6 +81,7 @@ class User extends Authenticatable
         );
     }
 
+
     /**
      * Tutor Finder profile belonging to this tutor.
      */
@@ -78,6 +89,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(Tutor::class);
     }
+
 
     /**
      * Tutor ratings submitted by this student.
@@ -87,6 +99,7 @@ class User extends Authenticatable
         return $this->hasMany(TutorRating::class);
     }
 
+
     /**
      * Resource requests created by this student.
      */
@@ -95,13 +108,119 @@ class User extends Authenticatable
         return $this->hasMany(ResourceRequest::class);
     }
 
+
     /**
-     * Requested resources uploaded by this student or tutor.
+     * Resource uploads created by this student or tutor.
      */
     public function resourceUploads()
     {
         return $this->hasMany(ResourceUpload::class);
     }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Study Group Relationships
+    |--------------------------------------------------------------------------
+    */
+
+
+    /**
+     * Study groups created by this user.
+     */
+    public function createdStudyGroups(): HasMany
+    {
+        return $this->hasMany(
+            StudyGroup::class,
+            'creator_id'
+        );
+    }
+
+
+    /**
+     * Study group membership records.
+     */
+    public function studyGroupMemberships(): HasMany
+    {
+        return $this->hasMany(
+            StudyGroupMember::class
+        );
+    }
+
+
+    /**
+     * Study groups joined by this user.
+     */
+    public function studyGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            StudyGroup::class,
+            'study_group_members'
+        )
+        ->withPivot([
+            'id',
+            'role',
+            'status',
+            'joined_at'
+        ])
+        ->withTimestamps();
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Project Team Relationships
+    |--------------------------------------------------------------------------
+    */
+
+
+    /**
+     * Project recruitments created by this user.
+     */
+    public function createdProjectRecruitments(): HasMany
+    {
+        return $this->hasMany(
+            ProjectRecruitment::class,
+            'creator_id'
+        );
+    }
+
+
+    /**
+     * Project team memberships.
+     */
+    public function projectTeamMemberships(): HasMany
+    {
+        return $this->hasMany(
+            ProjectTeamMember::class,
+            'user_id'
+        );
+    }
+
+
+    /**
+     * Projects joined by this user.
+     */
+    public function joinedProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProjectRecruitment::class,
+            'project_team_members',
+            'user_id',
+            'project_recruitment_id'
+        )
+        ->withPivot([
+            'id',
+            'role',
+            'status',
+            'joined_at'
+        ])
+        ->withTimestamps();
+    }
+
+
 
     /**
      * Attribute type conversions.

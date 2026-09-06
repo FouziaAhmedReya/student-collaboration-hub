@@ -30,8 +30,8 @@
         <form method="POST" action="{{ route('login.store') }}" class="space-y-4">
             @csrf
             <div>
-                <label for="email" class="block text-sm font-semibold text-slate-700">University Email <span class="text-red-500">*</span></label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus placeholder="student@g.bracu.ac.bd" class="mt-1 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                <label for="email" class="block text-sm font-semibold text-slate-700">Email <span class="text-red-500">*</span></label>
+                <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus placeholder="student@gmail.com" class="mt-1 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             </div>
 
             <div>

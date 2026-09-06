@@ -75,7 +75,7 @@
             <div>
 
                 <label class="block text-sm font-semibold text-slate-700">
-                    University Email <span class="text-red-500">*</span>
+                    Email <span class="text-red-500">*</span>
                 </label>
 
 
@@ -84,7 +84,7 @@
                     name="email"
                     value="{{ old('email') }}"
                     required
-                    placeholder="student@g.bracu.ac.bd"
+                    placeholder="student@gmail.com"
                     class="mt-1 w-full rounded-xl border border-slate-300 px-3.5 py-2.5"
                 >
 

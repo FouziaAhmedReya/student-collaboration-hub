@@ -1,10 +1,42 @@
 @extends('layouts.app')
 
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+    <style>
+        header, header * {
+            text-decoration: none !important;
+        }
+        header a {
+            color: inherit !important;
+            font-family: inherit !important;
+        }
+        header a.text-red-600 {
+            color: rgb(220 38 38) !important;
+        }
+        .hub-card { background: #fff; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.5rem; }
+        .btn-hub-primary { background-color: #2563eb; color: #fff; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-primary:hover { background-color: #1d4ed8; color: #fff; }
+        .btn-hub-outline { background-color: transparent; color: #2563eb; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-outline:hover { background-color: #eff6ff; }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+    <script src="{{ asset('js/hub-map.js') }}"></script>
+@endpush
+
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Back Link -->
     <div class="mb-2">
-        <a href="{{ route('projects.index') }}" class="text-decoration-none text-secondary small d-inline-flex align-items-center gap-1">
+        <a href="{{ route('project-recruitments.index') }}" class="text-decoration-none text-secondary small d-inline-flex align-items-center gap-1">
             <i class="bi bi-arrow-left"></i> Back to Project Team Finder
         </a>
     </div>
@@ -59,10 +91,10 @@
         <!-- Header Action Controls -->
         <div class="d-flex gap-2 align-items-center flex-wrap">
             @if($isCreator)
-                <a href="{{ route('projects.edit', $project) }}" class="btn btn-hub-outline btn-sm px-3 py-1.5 fw-medium">
+                <a href="{{ route('project-recruitments.edit', $project) }}" class="btn btn-hub-outline btn-sm px-3 py-1.5 fw-medium">
                     <i class="bi bi-pencil me-1"></i> Edit Project
                 </a>
-                <form action="{{ route('projects.destroy_recruitment', $project) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this recruitment post?');" class="d-inline">
+                <form action="{{ route('project-recruitments.destroy', $project) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this recruitment post?');" class="d-inline">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm px-3 py-1.5 fw-medium rounded-2">
@@ -80,7 +112,7 @@
                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill d-inline-flex align-items-center gap-1 small">
                             <i class="bi bi-clock-history"></i> Pending Approval
                         </span>
-                        <form action="{{ route('projects.cancelRequest', $project) }}" method="POST" class="d-inline" onsubmit="return confirm('Withdraw your join request?');">
+                        <form action="{{ route('project-recruitments.join.cancel', $project) }}" method="POST" class="d-inline" onsubmit="return confirm('Withdraw your join request?');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-outline-danger px-2.5 py-1">
@@ -97,7 +129,7 @@
                         <i class="bi bi-slash-circle me-1"></i> Team Full
                     </button>
                 @else
-                    <form action="{{ route('projects.request', $project) }}" method="POST" class="d-inline">
+                    <form action="{{ route('project-recruitments.join.store', $project) }}" method="POST" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-hub-primary btn-sm px-3 py-1.5 shadow-sm">
                             <i class="bi bi-person-plus-fill me-1"></i> Request to Join
@@ -305,7 +337,7 @@
                                                 @if($project->hasReachedMaxMembers())
                                                     <span class="badge bg-warning-subtle text-warning border me-1 small">Team Full</span>
                                                 @else
-                                                    <form action="{{ route('projects.requests.approve', [$project, $pendingReq]) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('project-recruitments.members.approve', [$project, $pendingReq]) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" class="btn btn-sm btn-success px-2.5 py-1 fw-medium shadow-sm" style="font-size: 0.75rem;">
@@ -313,7 +345,7 @@
                                                         </button>
                                                     </form>
                                                 @endif
-                                                <form action="{{ route('projects.requests.reject', [$project, $pendingReq]) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('Decline this applicant request?');">
+                                                <form action="{{ route('project-recruitments.members.reject', [$project, $pendingReq]) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('Decline this applicant request?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger px-2.5 py-1 fw-medium" style="font-size: 0.75rem;">

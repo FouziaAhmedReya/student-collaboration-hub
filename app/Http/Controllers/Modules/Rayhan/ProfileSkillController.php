@@ -82,6 +82,7 @@ class ProfileSkillController extends Controller
 
         $completionPercentage = $profile->completion_percentage;
         $completionDetails = $profile->completion_details;
+        $departmentSuggestions = DepartmentInterest::forDepartment($profile->department ?? 'Computer Science & Engineering')->pluck('name');
 
         // On-Demand Gemini AI Event Recommendations for Profile
         $aiEventRecommendations = null;
@@ -139,11 +140,12 @@ class ProfileSkillController extends Controller
             }
         }
 
-        return view('modules.rayhan.profile-skills.index', [
+        return view('profile.show', [
             'user' => $user,
             'profile' => $profile,
             'completionPercentage' => $completionPercentage,
             'completionDetails' => $completionDetails,
+            'departmentSuggestions' => $departmentSuggestions,
             'aiEventRecommendations' => $aiEventRecommendations,
         ]);
     }
@@ -219,8 +221,8 @@ class ProfileSkillController extends Controller
                 'about_me' => $aboutMe,
                 'preferred_location_name' => $validated['preferred_location_name'] ?? null,
                 'preferred_location_address' => $validated['preferred_location_address'] ?? null,
-                'latitude' => $validated['latitude'] !== null ? (float) $validated['latitude'] : null,
-                'longitude' => $validated['longitude'] !== null ? (float) $validated['longitude'] : null,
+                'latitude' => isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+                'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
             ];
 
             if (isset($validated['profile_photo'])) {

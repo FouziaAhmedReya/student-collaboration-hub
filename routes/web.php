@@ -931,6 +931,14 @@ Route::prefix('profile')
             ]
         )->name('update');
 
+        Route::put(
+            '/location',
+            [
+                ProfileSkillController::class,
+                'updateLocation',
+            ]
+        )->name('location');
+
         /*
         |--------------------------------------------------------------------------
         | Skills

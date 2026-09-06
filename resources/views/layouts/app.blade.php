@@ -23,6 +23,7 @@
         'resources/css/app.css',
         'resources/js/app.js'
     ])
+    @stack('styles')
 </head>
 
 <body class="min-h-screen bg-slate-50 text-slate-950 antialiased">
@@ -99,8 +100,8 @@
         {{-- Main navigation --}}
         <nav
             aria-label="Main navigation"
-            class="flex flex-wrap items-center gap-x-1 gap-y-1
-                   py-2 text-xs font-medium sm:text-sm lg:h-16 lg:py-0"
+            class="flex flex-wrap items-center gap-x-1 gap-y-0.5
+                py-1.5 text-xs font-medium sm:text-sm lg:py-1.5"
         >
             {{-- Admin-only links --}}
             @if ($currentRole === 'admin')
@@ -278,6 +279,16 @@
                 >
                     Study Groups
                 </a>
+
+                
+                <a    href="{{ route('project-recruitments.index') }}"
+                    class="rounded-lg border-b-2 px-2.5 py-1.5 transition-colors
+                    {{ request()->routeIs('project-recruitments.*')
+                        ? 'border-blue-600 bg-blue-50/50 font-bold text-blue-700'
+                        : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"
+                >
+                    Project Team Finder
+                </a>                
 
                 <a
                     href="{{ route('report.create', $currentUser->id) }}"
@@ -664,6 +675,8 @@
         });
     </script>
 @endif
+
+@stack('scripts')
 
 </body>
 

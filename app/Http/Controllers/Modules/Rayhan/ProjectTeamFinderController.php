@@ -154,7 +154,7 @@ class ProjectTeamFinderController extends \App\Http\Controllers\Controller
         ]);
 
         return redirect()
-            ->route('projects.show', $project)
+            ->route('project-recruitments.show', $project)
             ->with('success', "Project recruitment post '{$project->title}' created successfully!");
     }
 
@@ -243,7 +243,7 @@ class ProjectTeamFinderController extends \App\Http\Controllers\Controller
         $project->update($validated);
 
         return redirect()
-            ->route('projects.show', $project)
+            ->route('project-recruitments.show', $project)
             ->with('success', "Project recruitment post '{$project->title}' updated successfully!");
     }
 
@@ -260,7 +260,7 @@ class ProjectTeamFinderController extends \App\Http\Controllers\Controller
         $project->delete();
 
         return redirect()
-            ->route('projects.index')
+            ->route('project-recruitments.index')
             ->with('success', "Project recruitment post '{$title}' deleted successfully.");
     }
 

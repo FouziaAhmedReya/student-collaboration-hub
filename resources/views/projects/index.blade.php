@@ -1,5 +1,37 @@
 @extends('layouts.app')
 
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+    <style>
+        header, header * {
+            text-decoration: none !important;
+        }
+        header a {
+            color: inherit !important;
+            font-family: inherit !important;
+        }
+        header a.text-red-600 {
+            color: rgb(220 38 38) !important;
+
+        }
+        .hub-card { background: #fff; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.5rem; }
+        .btn-hub-primary { background-color: #2563eb; color: #fff; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-primary:hover { background-color: #1d4ed8; color: #fff; }
+        .btn-hub-outline { background-color: transparent; color: #2563eb; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-outline:hover { background-color: #eff6ff; }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+@endpush
+
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Session Flash Alerts -->
@@ -26,7 +58,7 @@
             <p class="text-secondary mb-0 fs-6">Find students looking for teammates, recruit talent, or discover project collaboration opportunities.</p>
         </div>
         <div>
-            <a href="{{ route('projects.create') }}" class="btn btn-hub-primary d-inline-flex align-items-center gap-2 shadow-sm">
+            <a href="{{ route('project-recruitments.create') }}" class="btn btn-hub-primary d-inline-flex align-items-center gap-2 shadow-sm">
                 <i class="bi bi-plus-lg"></i> Post a Project
             </a>
         </div>
@@ -37,26 +69,26 @@
         <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
             <!-- Status Filter Pills -->
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('projects.index', ['status' => 'all', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
+                <a href="{{ route('project-recruitments.index', ['status' => 'all', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
                    class="btn btn-sm {{ $status === 'all' ? 'btn-primary' : 'btn-light border text-secondary' }} rounded-pill px-3 py-2 fw-medium">
                     All Opportunities <span class="badge {{ $status === 'all' ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-1 rounded-pill">{{ $counts['all'] }}</span>
                 </a>
-                <a href="{{ route('projects.index', ['status' => 'open', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
+                <a href="{{ route('project-recruitments.index', ['status' => 'open', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
                    class="btn btn-sm {{ $status === 'open' ? 'btn-primary' : 'btn-light border text-secondary' }} rounded-pill px-3 py-2 fw-medium">
                     <i class="bi bi-door-open me-1"></i> Recruiting <span class="badge {{ $status === 'open' ? 'bg-white text-primary' : 'bg-success text-white' }} ms-1 rounded-pill">{{ $counts['open'] }}</span>
                 </a>
-                <a href="{{ route('projects.index', ['status' => 'closed', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
+                <a href="{{ route('project-recruitments.index', ['status' => 'closed', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
                    class="btn btn-sm {{ $status === 'closed' ? 'btn-primary' : 'btn-light border text-secondary' }} rounded-pill px-3 py-2 fw-medium">
                     <i class="bi bi-lock me-1"></i> Team Full / Closed <span class="badge {{ $status === 'closed' ? 'bg-white text-primary' : 'bg-secondary text-white' }} ms-1 rounded-pill">{{ $counts['closed'] }}</span>
                 </a>
-                <a href="{{ route('projects.index', ['status' => 'my', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
+                <a href="{{ route('project-recruitments.index', ['status' => 'my', 'search' => $search, 'course' => $course, 'type' => $projectType]) }}"
                    class="btn btn-sm {{ $status === 'my' ? 'btn-primary' : 'btn-light border text-secondary' }} rounded-pill px-3 py-2 fw-medium">
                     <i class="bi bi-person me-1"></i> My Posts <span class="badge {{ $status === 'my' ? 'bg-white text-primary' : 'bg-info text-white' }} ms-1 rounded-pill">{{ $counts['my'] }}</span>
                 </a>
             </div>
 
             <!-- Search and Dropdown Filter Form -->
-            <form method="GET" action="{{ route('projects.index') }}" class="d-flex flex-wrap flex-md-nowrap gap-2" style="min-width: 320px;">
+            <form method="GET" action="{{ route('project-recruitments.index') }}" class="d-flex flex-wrap flex-md-nowrap gap-2" style="min-width: 320px;">
                 <input type="hidden" name="status" value="{{ $status }}">
                 
                 <select name="type" class="form-select form-select-sm" style="max-width: 160px;" onchange="this.form.submit()">
@@ -70,7 +102,7 @@
                     <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search by title, skill, course..." value="{{ $search }}">
                     @if($search || $course || $projectType)
-                        <a href="{{ route('projects.index', ['status' => $status]) }}" class="btn btn-outline-secondary border-start-0" title="Clear filters">
+                        <a href="{{ route('project-recruitments.index', ['status' => $status]) }}" class="btn btn-outline-secondary border-start-0" title="Clear filters">
                             <i class="bi bi-x"></i>
                         </a>
                     @endif
@@ -108,7 +140,7 @@
 
                     <!-- Project Title -->
                     <h5 class="fw-bold text-dark mb-1 text-truncate">
-                        <a href="{{ route('projects.show', $project) }}" class="text-dark text-decoration-none">
+                        <a href="{{ route('project-recruitments.show', $project) }}" class="text-dark text-decoration-none">
                             {{ $project->title }}
                         </a>
                     </h5>
@@ -177,14 +209,14 @@
                     <!-- Action Buttons -->
                     <div class="mt-auto pt-2 border-top">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <a href="{{ route('projects.show', $project) }}" class="btn btn-sm btn-hub-primary flex-grow-1">
+                            <a href="{{ route('project-recruitments.show', $project) }}" class="btn btn-sm btn-hub-primary flex-grow-1">
                                 <i class="bi bi-eye me-1"></i> View Details
                             </a>
                             @if($isCreator)
-                                <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-outline-secondary" title="Edit Post">
+                                <a href="{{ route('project-recruitments.edit', $project) }}" class="btn btn-sm btn-outline-secondary" title="Edit Post">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('projects.destroy_recruitment', $project) }}" method="POST" onsubmit="return confirm('Delete this project recruitment post?');" class="d-inline">
+                                <form action="{{ route('project-recruitments.destroy', $project) }}" method="POST" onsubmit="return confirm('Delete this project recruitment post?');" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Post">
@@ -202,7 +234,7 @@
                     <i class="bi bi-briefcase fs-1 text-muted d-block mb-3"></i>
                     <h5 class="fw-bold text-dark">No project recruitment posts found</h5>
                     <p class="text-secondary small mb-4">Be the first to create a team recruitment post for your project!</p>
-                    <a href="{{ route('projects.create') }}" class="btn btn-hub-primary">
+                    <a href="{{ route('project-recruitments.create') }}" class="btn btn-hub-primary">
                         <i class="bi bi-plus-lg me-1"></i> Post a Project
                     </a>
                 </div>

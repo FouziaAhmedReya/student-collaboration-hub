@@ -1,5 +1,43 @@
 @extends('layouts.app')
 
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+    <style>
+        header, header * {
+            text-decoration: none !important;
+        }
+        header a {
+            color: inherit !important;
+            font-family: inherit !important;
+        }
+        .hub-card { background: #fff; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.5rem; }
+        .btn-hub-primary { background-color: #2563eb; color: #fff; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-primary:hover { background-color: #1d4ed8; color: #fff; }
+        .btn-hub-outline { background-color: transparent; color: #2563eb; border: 1px solid #2563eb; border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 600; }
+        .btn-hub-outline:hover { background-color: #eff6ff; }
+    
+        header a {
+            text-decoration: none !important;
+            color: rgb(71 85 105);
+        }
+
+        header a:hover {
+            color: rgb(15 23 42);
+        }
+
+        header a.text-blue-700 {
+            color: rgb(29 78 216) !important;
+        }
+
+        header a.text-red-600 {
+            color: rgb(220 38 38) !important;
+        }
+    </style>
+@endpush
+
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Session Flash Alerts -->
@@ -169,25 +207,14 @@
                             @endif
 
                             <!-- Mini Map Preview Box -->
-                            <div class="rounded-3 overflow-hidden border" style="height: 120px; background-color: #f1f5f9; position: relative;">
-                                @if(env('GOOGLE_MAPS_API_KEY') && $group->latitude && $group->longitude)
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        style="border:0"
-                                        loading="lazy"
-                                        allowfullscreen
-                                        src="https://www.google.com/maps/embed/v1/place?key={{ env('GOOGLE_MAPS_API_KEY') }}&q={{ $group->latitude }},{{ $group->longitude }}">
-                                    </iframe>
+                            <div class="rounded-3 overflow-hidden border" style="height: 120px; position: relative;">
+                                @if($group->latitude && $group->longitude)
+                                    <div id="groupMap{{ $group->id }}" class="w-100 h-100"></div>
                                 @else
                                     <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-2" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
                                         <i class="bi bi-geo-alt-fill text-danger fs-3 mb-1"></i>
                                         <span class="small fw-semibold text-dark text-truncate px-2">{{ $group->location_name ?? 'Campus / Library' }}</span>
-                                        @if($group->latitude && $group->longitude)
-                                            <span class="text-muted" style="font-size: 0.72rem;">📍 {{ number_format($group->latitude, 4) }}, {{ number_format($group->longitude, 4) }}</span>
-                                        @else
-                                            <span class="text-muted" style="font-size: 0.72rem;">Meeting Location Preview</span>
-                                        @endif
+                                        <span class="text-muted" style="font-size: 0.72rem;">Meeting Location Preview</span>
                                     </div>
                                 @endif
                             </div>
@@ -287,4 +314,27 @@
         </div>
     @endif
 </div>
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+    <script src="{{ asset('js/hub-map.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        @foreach($groups as $group)
+            @if($group->latitude && $group->longitude)
+                HubMap.initDisplayMap(
+                    'groupMap{{ $group->id }}',
+                    {{ (float) $group->latitude }},
+                    {{ (float) $group->longitude }},
+                    "{{ addslashes($group->location_name ?? 'Meeting Location') }}",
+                    14
+                );
+            @endif
+        @endforeach
+    });
+</script>
+@endpush
+
 @endsection

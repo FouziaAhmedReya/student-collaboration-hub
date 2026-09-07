@@ -5,7 +5,10 @@ WORKDIR /var/www/html
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    curl \
     libpq-dev \
+    nodejs \
+    npm \
     && docker-php-ext-install pdo pdo_pgsql
 
 COPY . .
@@ -19,10 +22,11 @@ RUN curl -sS https://getcomposer.org/installer | php \
 
 RUN composer install --no-dev --optimize-autoloader
 
+RUN npm install
+RUN npm run build
+
 RUN php artisan config:clear
 
 RUN chmod -R 777 storage bootstrap/cache
-
-RUN npm install && npm run build
 
 CMD php artisan migrate --force && apache2-foreground

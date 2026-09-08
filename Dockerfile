@@ -28,5 +28,7 @@ RUN npm run build
 RUN php artisan config:clear
 
 RUN chmod -R 777 storage bootstrap/cache
+RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/uploads.ini
 
 CMD php artisan migrate --force && php artisan storage:link && apache2-foreground
